@@ -9,6 +9,7 @@ from utils.imageFinder import ImageFinder
 from math import pow
 from pyperclip import copy
 from api.mumu.mumu import Mumu
+import psutil
 
 
 class Launch:
@@ -142,7 +143,11 @@ class Launch:
                 sleep(5)
                 ocr.click_text("进入游戏", region_id=7)
                 self.log_queue.put(["检测到登录成功，退出模拟器", "INF1"])
-                mumu.power.shutdown()
+                for proc in psutil.process_iter(['cmdline', 'name']):
+                    if proc.name().startswith("MuMu"):
+                        print(proc)
+                        proc.terminate()
+                        proc.wait(timeout=5)
                 sleep(10)
             else:
                 # enter account information in login box
