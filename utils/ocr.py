@@ -88,9 +88,9 @@ class OCR:
             if position is not None:
                 moveTo(position)
                 sleep(0.2)
-                return 1
+                return True
             elif blocking == 0:
-                return 0
+                return False
 
     def click_text(self, text, blocking=1, region_id=0, match=0):
         """move mouse to the targeted text in the screen and click
@@ -109,9 +109,9 @@ class OCR:
                 moveTo(position)
                 sleep(0.2)
                 click()
-                return 1
+                return True
             elif blocking == 0:
-                return 0
+                return False
 
     def terminate(self):
         """terminate the ocr thread"""

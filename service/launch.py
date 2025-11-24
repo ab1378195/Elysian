@@ -56,12 +56,91 @@ class Launch:
             game_window[0].activate()
 
     def enter_game(self):
+        def login_verify():
+            sleep(10)
+            ocr.text("当前模式", region_id=3)
+            sleep(1)
+            while True:
+                flag_reward = False
+                flag_abyss = False
+                flag_announcement = False
+                # claim check-in rewards (might have monthly reward)
+                if ocr.click_text("领取", blocking=0, region_id=7):
+                    sleep(2)
+                    ocr.click_text("确定")
+                    sleep(2)
+                else:
+                    flag_reward = True
+                # abyss settlement
+                if ocr.text("结算", blocking=0):
+                    sleep(2)
+                    click()
+                    sleep(2)
+                else:
+                    flag_abyss = True
+                # close announcement
+                if self.imgF.single(
+                    "resources//login//close_announcement.png", region_id=2
+                ):
+                    moveTo(self.imgF.position)
+                    sleep(0.2)
+                    click()
+                else:
+                    flag_announcement = True
+                if flag_reward and flag_announcement and flag_abyss:
+                    break
+
+        def fill_login_box():
+            # enter account information in login box
+            ocr.click_text("账号密码", region_id=5)
+            sleep(1)
+            ocr.click_text("手机号", region_id=5)
+            sleep(0.5)
+            copy(self.account.account)
+            hotkey("ctrl", "v")
+            sleep(0.5)
+            ocr.click_text("密码", region_id=5)
+            sleep(0.5)
+            copy(self.account.password)
+            hotkey("ctrl", "v")
+            sleep(0.5)
+            ocr.click_text("进入游戏", region_id=5)
+            # accept user agreements
+            while True:
+                sleep(1)
+                if ocr.click_text("同意", blocking=0, region_id=5, match=1):
+                    sleep(10)
+                if ocr.text("进入游戏", blocking=0, region_id=7):
+                    sleep(3)
+                    break
+            # select channel
+            self.imgF.single("resources//login//channel.png", region_id=7)
+            moveTo(self.imgF.position)
+            sleep(0.2)
+            click()
+            sleep(1)
+            if self.account.channel == "ios":
+                self.imgF.single("resources//login//ios.png")
+                moveTo(self.imgF.position)
+                sleep(0.2)
+                click()
+            else:
+                if self.account.channel == "官服":
+                    self.account.channel = "全平台"
+                if self.account.channel == "Android":
+                    self.account.channel = "安卓"
+                ocr.click_text(self.account.channel)
+            sleep(1)
+            ocr.click_text("确定")
+            sleep(2)
+            ocr.click_text("进入游戏", region_id=7)
+
         ocr = OCR()
         # wait until the login is already
         while True:
             self.activate_game()
             sleep(1)
-            if ocr.text("进入游戏", 0, region_id=7) == 1:
+            if ocr.text("进入游戏", 0, region_id=7):
                 sleep(4)
                 break
         # need to logout (uid is different)
@@ -72,7 +151,7 @@ class Launch:
                 self.log_queue.put(["检测到uid不符，登出账号", "INF1"])
             # check which login page now and jump to login box in both cases
             while True:
-                if ocr.click_text("更换账号", 0, region_id=4) == 1:
+                if ocr.click_text("更换账号", 0, region_id=4):
                     sleep(1)
                     # choose the option "remain login history"
                     ocr.text("保留", region_id=5)
@@ -148,53 +227,15 @@ class Launch:
                         print(proc)
                         proc.terminate()
                         proc.wait(timeout=5)
-                sleep(10)
+                login_verify()
             else:
-                # enter account information in login box
-                ocr.click_text("账号密码", region_id=5)
-                sleep(1)
-                ocr.click_text("手机号", region_id=5)
-                sleep(0.5)
-                copy(self.account.account)
-                hotkey("ctrl", "v")
-                sleep(0.5)
-                ocr.click_text("密码", region_id=5)
-                sleep(0.5)
-                copy(self.account.password)
-                hotkey("ctrl", "v")
-                sleep(0.5)
-                ocr.click_text("进入游戏", region_id=5)
-                # accept user agreements
-                while True:
-                    sleep(1)
-                    if ocr.click_text("同意", blocking=0, region_id=5, match=1):
-                        sleep(10)
-                    if ocr.text("进入游戏", blocking=0, region_id=7):
-                        sleep(3)
-                        break
-                # select channel
-                self.imgF.single("resources//login//channel.png", region_id=7)
-                moveTo(self.imgF.position)
-                sleep(0.2)
-                click()
-                sleep(1)
-                if self.account.channel == "ios":
-                    self.imgF.single("resources//login//ios.png")
-                    moveTo(self.imgF.position)
-                    sleep(0.2)
-                    click()
-                else:
-                    if self.account.channel == "官服":
-                        self.account.channel = "全平台"
-                    if self.account.channel == "Android":
-                        self.account.channel = "安卓"
-                    ocr.click_text(self.account.channel)
-                sleep(1)
-                ocr.click_text("确定")
-                sleep(2)
-                ocr.click_text("进入游戏", region_id=7)
-                sleep(10)
+                fill_login_box()
+                login_verify()
         # not need to logout (uid is same)
         else:
-            ocr.click_text("进入游戏", 0, region_id=7)
-            sleep(5)
+            ocr.text("进入游戏")
+            if ocr.text("账号密码", blocking=0, region_id=5):
+                fill_login_box()
+            else:
+                ocr.click_text("进入游戏")
+            login_verify()
