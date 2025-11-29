@@ -5,6 +5,7 @@ import pygetwindow as gw
 from utils.ocr import OCR
 from time import sleep
 from service.accountService import AccountService
+from service.configurationService import ConfigurationService
 from utils.imageFinder import ImageFinder
 from math import pow
 from pyperclip import copy
@@ -14,15 +15,24 @@ import psutil
 
 class Launch:
     def __init__(self, log_queue):
+        """启动崩坏3的类
+
+        Args:
+            log_queue (Queue): 与Procedure进行通信的队列
+        """
         accountService = AccountService()
         self.account = accountService.get_login_account()
         if self.account.channel == "渠道服":
-            self.emulator_info = accountService.get_emulator_config()
+            configurationService = ConfigurationService()
+            self.emulator_configuration = (
+                configurationService.get_emulator_configuration()
+            )
         self.logout = False
         self.log_queue = log_queue
         self.imgF = ImageFinder()
 
     def launch_game(self):
+        """启动崩坏3"""
         windows = gw.getAllTitles()
         if "崩坏3" not in windows:
             with winreg.OpenKey(
@@ -50,13 +60,17 @@ class Launch:
         self.log_queue.put(["exit", "INF1"])
 
     def activate_game(self):
+        """激活崩坏3为活跃窗口"""
         active_window = gw.getActiveWindow()
         if active_window.title != "崩坏3":
             game_window = gw.getWindowsWithTitle("崩坏3")
             game_window[0].activate()
 
     def enter_game(self):
+        """进入崩坏3"""
+
         def login_verify():
+            """验证是否已成功登录到舰桥页面"""
             sleep(10)
             ocr.text("当前模式", region_id=3)
             sleep(1)
@@ -64,21 +78,21 @@ class Launch:
                 flag_reward = False
                 flag_abyss = False
                 flag_announcement = False
-                # claim check-in rewards (might have monthly reward)
-                if ocr.click_text("领取", blocking=0, region_id=7):
+                # 领取每日签到奖励和月卡奖励(采用严格匹配，因为可能匹配到未加入舰团时弹出的加入领取奖励)
+                if ocr.click_text("领取", blocking=0, match=1, region_id=7):
                     sleep(2)
                     ocr.click_text("确定")
                     sleep(2)
                 else:
                     flag_reward = True
-                # abyss settlement
+                # 深渊结算
                 if ocr.text("结算", blocking=0):
                     sleep(2)
                     click()
                     sleep(2)
                 else:
                     flag_abyss = True
-                # close announcement
+                # 关闭游戏公告
                 if self.imgF.single(
                     "resources//login//close_announcement.png", region_id=2
                 ):
@@ -91,7 +105,8 @@ class Launch:
                     break
 
         def fill_login_box():
-            # enter account information in login box
+            """填写登录框的信息"""
+            # 通过复制粘贴写入账号与密码信息
             ocr.click_text("账号密码", region_id=5)
             sleep(1)
             ocr.click_text("手机号", region_id=5)
@@ -105,7 +120,7 @@ class Launch:
             hotkey("ctrl", "v")
             sleep(0.5)
             ocr.click_text("进入游戏", region_id=5)
-            # accept user agreements
+            # 同意用户协议
             while True:
                 sleep(1)
                 if ocr.click_text("同意", blocking=0, region_id=5, match=1):
@@ -113,13 +128,14 @@ class Launch:
                 if ocr.text("进入游戏", blocking=0, region_id=7):
                     sleep(3)
                     break
-            # select channel
+            # 选择登录渠道
             self.imgF.single("resources//login//channel.png", region_id=7)
             moveTo(self.imgF.position)
             sleep(0.2)
             click()
             sleep(1)
             if self.account.channel == "ios":
+                # 由于OCR仅保留简中模型，英文识别效果不好，采用图片匹配
                 self.imgF.single("resources//login//ios.png")
                 moveTo(self.imgF.position)
                 sleep(0.2)
@@ -136,24 +152,24 @@ class Launch:
             ocr.click_text("进入游戏", region_id=7)
 
         ocr = OCR()
-        # wait until the login is already
+        # 等待游戏加载完毕
         while True:
             self.activate_game()
             sleep(1)
             if ocr.text("进入游戏", 0, region_id=7):
                 sleep(4)
                 break
-        # need to logout (uid is different)
+        # 执行登出操作
         if self.logout:
             if self.account.channel == "渠道服":
                 self.log_queue.put(["检测到为渠道服账号，登出账号", "INF1"])
             else:
                 self.log_queue.put(["检测到uid不符，登出账号", "INF1"])
-            # check which login page now and jump to login box in both cases
+            # 确认当前页面
             while True:
                 if ocr.click_text("更换账号", 0, region_id=4):
                     sleep(1)
-                    # choose the option "remain login history"
+                    # 选择保留历史记录
                     ocr.text("保留", region_id=5)
                     base_position = ocr.find("保留", region_id=5)
                     self.imgF.single(
@@ -165,7 +181,7 @@ class Launch:
                     self.imgF.single(
                         "resources//login//unselected_radiobutton.png", region_id=5
                     )
-                    # the unselected box is closer, meaning the option should be choosed
+                    # 若未选择的框离得更近，说明该框为保留历史记录的框，应当勾选
                     if (
                         pow(self.imgF.position[0] - base_position[0], 2)
                         + pow(self.imgF.position[1] - base_position[1], 2)
@@ -173,7 +189,7 @@ class Launch:
                     ):
                         moveTo(self.imgF.position)
                         click()
-                    # logout
+                    # 登出
                     sleep(1)
                     ocr.click_text("退出", region_id=5, match=1)
                     sleep(1)
@@ -185,8 +201,8 @@ class Launch:
                     break
             if self.account.channel == "渠道服":
                 self.log_queue.put(["检测到为渠道服登录，启动模拟器", "INF1"])
-                mumu = Mumu(self.emulator_info["path"]).select(
-                    self.emulator_info["index"]
+                mumu = Mumu(self.emulator_configuration["path"]).select(
+                    self.emulator_configuration["index"]
                 )
                 mumu.power.start()
                 sleep(10)
@@ -224,14 +240,13 @@ class Launch:
                 self.log_queue.put(["检测到登录成功，退出模拟器", "INF1"])
                 for proc in psutil.process_iter(['cmdline', 'name']):
                     if proc.name().startswith("MuMu"):
-                        print(proc)
                         proc.terminate()
                         proc.wait(timeout=5)
                 login_verify()
             else:
                 fill_login_box()
                 login_verify()
-        # not need to logout (uid is same)
+        # 不需要登出时的进入游戏
         else:
             ocr.text("进入游戏")
             if ocr.text("账号密码", blocking=0, region_id=5):

@@ -4,18 +4,15 @@ from model.account import Account
 
 
 class AccountRepository:
-    """the repository for CURD operations for Account objects"""
-
     def __init__(self):
-        """basic attributes"""
-        self.resource_path = "resources//account"
-        self.exclude_list = ["emulator.json"]
+        """用于管理account数据读写的类"""
+        self.resource_path = os.path.join("resources", "account")
 
     def save(self, account):
-        """save a new account object
+        """保存新的account
 
         Args:
-            account (Account): a new Account object needs to be stored
+            account (Account): 需要保存的新account
         """
         account_data = {
             "channel": account.channel,
@@ -24,24 +21,26 @@ class AccountRepository:
             "login": account.login,
         }
         with open(
-            self.resource_path + "//" + account.uid + ".json", "w", encoding="utf-8"
+            os.path.join(self.resource_path, account.uid + ".json"),
+            "w",
+            encoding="utf-8",
         ) as f:
             dump(account_data, f, ensure_ascii=False, indent=4)
 
-    def findAll(self):
-        """find all Account objects
+    def find_all_account(self):
+        """找到所有的account，并作为列表返回
 
         Returns:
-            List<Account>: a list of all Account objects
+            List<Account>: account列表(未找到返回[ ])
         """
         account_list = []
         for filename in os.listdir(self.resource_path):
-            if filename in self.exclude_list:
-                continue
             account = Account()
-            with open(self.resource_path + "//" + filename, "r", encoding="utf-8") as f:
+            with open(
+                os.path.join(self.resource_path, filename), "r", encoding="utf-8"
+            ) as f:
                 account_info = load(f)
-            account.uid = filename[:-5]
+            account.uid = os.path.splitext(filename)[0]
             account.account = account_info["account"]
             account.password = account_info["password"]
             account.channel = account_info["channel"]
@@ -50,27 +49,9 @@ class AccountRepository:
         return account_list
 
     def delete(self, uid):
-        """delete the account with uid (primary key)
+        """根据uid删除对应的account
 
         Args:
-            uid (String): uid of the object
+            uid (String): account的uid属性
         """
-        if os.path.exists(self.resource_path + "//" + uid + ".json") and os.path.isfile(
-            self.resource_path + "//" + uid + ".json"
-        ):
-            os.remove(self.resource_path + "//" + uid + ".json")
-
-    def saveEmulatorConfig(self, config_info):
-        with open(
-            os.path.join(self.resource_path, "emulator.json"), "w", encoding="utf-8"
-        ) as f:
-            dump(config_info, f, ensure_ascii=False, indent=4)
-
-    def getEmulatorConfig(self):
-        try:
-            with open(os.path.join(self.resource_path, "emulator.json"),"r", encoding="utf-8") as f:
-                config_info = load(f)
-            return config_info
-        # might not have the file (first run)
-        except:
-            return {}
+        os.remove(os.path.join(self.resource_path, uid + ".json"))

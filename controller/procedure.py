@@ -6,10 +6,8 @@ from service.Elysian import Elysian
 
 
 class Procedure:
-    """the class to manage the flow of tasks performed"""
-
     def __init__(self):
-        """basic attributes"""
+        """用于控制任务执行并与遮罩窗口通信的类"""
         self.log_queue = Queue()
         self.mask_thread = Thread(
             target=launch_mask, args=(self.log_queue,), daemon=True
@@ -17,18 +15,18 @@ class Procedure:
         self.mask_thread.start()
 
     def write_log(self, log):
-        """write log by sending logs to mask window
+        """发送日志给遮罩窗口显示
 
         Args:
-            log (List): a length-2 list, the first element is the content of the log, the second element is the tag of the log ("INF1", "INF2", "ERR")
+            log (List): 要显示的日志
         """
         self.log_queue.put(log)
 
     def receive(self, queue):
-        """keep listening to other threads, manage to send logs by other threads to mask window, terminate when accepts "exit"
+        """持续监听指定线程，并传递线程的日志信息给遮罩窗口
 
         Args:
-            queue (Queue): the communication queue between procedure and other threads
+            queue (Queue): 和其它线程之间的通信队列
         """
         while True:
             try:
@@ -42,10 +40,10 @@ class Procedure:
                 self.log_queue.put([e, "ERR"])
 
     def perform_tasks(self, tasks_list):
-        """manage the flow of performing tasks
+        """执行所选的各项任务
 
         Args:
-            tasks_list (List<int>): tasks list, 1 means this task needs to be done, 0 means not
+            tasks_list (List<int>): 任务清单列表，1代表需要执行，0代表不执行
         """
         self.write_log(["任务开始", "INF2"])
         launch_thread_queue = Queue()
@@ -53,7 +51,10 @@ class Procedure:
         launch_thread = Thread(target=launch.launch_game, daemon=True)
         launch_thread.start()
         self.receive(launch_thread_queue)
-        if tasks_list[5]==1:
+        if tasks_list[0] == 1:
+            home_thread_queue = Queue()
+
+        if tasks_list[5] == 1:
             Elysian_deep_thread_queue = Queue()
             elysian = Elysian(Elysian_deep_thread_queue)
             Elysian_deep_thread = Thread(target=elysian.run, daemon=True)

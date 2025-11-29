@@ -1,7 +1,6 @@
 from service.privilege import adminPermissionAcquire
 from controller.application import GUI
 from service.update import Update
-from multiprocessing import Process
 from threading import Thread
 from keyboard import wait
 

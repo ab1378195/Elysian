@@ -2,65 +2,58 @@ from repository.accountRepository import AccountRepository
 
 
 class AccountService:
-    """the service layer for manipulating the account objects"""
-
     def __init__(self):
-        """basic attributes"""
+        """处理account相关业务逻辑的类
+        """
         self.accountRepository = AccountRepository()
 
-    def findAll(self):
-        """find all Account objects
+    def find_all_account(self):
+        """找到所有的account，并作为列表返回
 
         Returns:
-            List<Account>: a list of all Account objects
+            List<Account>: account列表(未找到返回[ ])
         """
-        return self.accountRepository.findAll()
+        return self.accountRepository.find_all_account()
 
     def save(self, account):
-        """save a account object
+        """保存一个account
 
         Args:
-            account (Account): the Account object needs to be saved
+            account (Account): 需要保存的account
         """
         self.accountRepository.save(account)
 
     def delete(self, uid):
-        """delete the Account object by uid
+        """根据uid删除指定的account
 
         Args:
-            uid (String): the uid of the deleting object
+            uid (String): 要删除account的uid
         """
         self.accountRepository.delete(uid)
 
     def update_login_account(self, uid):
-        """update the login attribute of account with specific uid to 1, and make other account objects' login attribute to 0
+        """更新登录账户
 
         Args:
-            uid (String): the uid of new login Account object
+            uid (String): 新登录账户的uid
         """
-        account_list = self.findAll()
+        account_list = self.find_all_account()
         for account in account_list:
             if account.uid == uid:
-                account.login = 1
+                account.login = True
                 self.save(account)
-            elif account.login == 1:
-                account.login = 0
+            elif account.login:
+                account.login = False
                 self.save(account)
 
     def get_login_account(self):
-        """find the login account, if no login account, return None
+        """找到登录账户，未找到返回None
 
         Returns:
-            Optional<Account>: the login account / None
+            Optional<Account>: 登录account|None
         """
-        account_list = self.findAll()
+        account_list = self.find_all_account()
         for account in account_list:
-            if account.login == 1:
+            if account.login:
                 return account
         return None
-    
-    def save_emulator_config(self, config_info):
-        self.accountRepository.saveEmulatorConfig(config_info)
-
-    def get_emulator_config(self):
-        return self.accountRepository.getEmulatorConfig()

@@ -2,11 +2,13 @@ import ctypes, sys
 
 
 def adminPermissionAcquire():
-    """acquire admin permission if not
-    """
+    """如果没有管理员权限，申请管理员权限"""
+
     def adminPermissionCheck():
-        """check admin permission\n
-        `Returns`: 1 means have admin permission, 0 means not
+        """检查是否拥有管理员权限
+
+        Returns:
+            int: 1代表拥有管理员权限，0代表没有
         """
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
@@ -14,8 +16,8 @@ def adminPermissionAcquire():
             return 0
 
     if not adminPermissionCheck():
-        # restart the program with admin permission
+        # 通过管理员权限重启程序以获取管理员权限
         ctypes.windll.shell32.ShellExecuteW(
             None, "runas", sys.executable, __file__, None, 1
         )
-        sys.exit()  # terminate current program
+        sys.exit()  # 终止当前程序

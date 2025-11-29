@@ -5,14 +5,17 @@ from json import load, dump
 
 class StrategyRepository:
     def __init__(self):
-        self.resource_path = "resources//Elysian"
-        self.exclude_list = ["portal.pt", "config.json"]
+        """管理strategy读写操作的类"""
+        self.resource_path = os.path.join("resources", "strategy")
 
-    def findAll(self):
+    def find_all_strategy(self):
+        """找到所有的strategy，并返回列表
+
+        Returns:
+            List<Strategy>: 包含所有strategy的列表，未找到返回[ ]
+        """
         strategy_list = []
         for filename in os.listdir(self.resource_path):
-            if filename in self.exclude_list:
-                continue
             strategy = Strategy()
             with open(
                 os.path.join(self.resource_path, filename), "r", encoding="utf-8"
@@ -24,16 +27,3 @@ class StrategyRepository:
             strategy.engraving_strategy = strategy_info["engraving_strategy"]
             strategy_list.append(strategy)
         return strategy_list
-
-    def getConfig(self):
-        with open(os.path.join(self.resource_path,"config.json"),"r",encoding="utf-8") as f:
-            config_info = load(f)
-        return config_info
-    
-    def saveConfig(self, config_info):
-        strategy_list = self.findAll()
-        for strategy in strategy_list:
-            if config_info["name_ch"] == strategy.name_ch:
-                config_info["name"] = strategy.name
-        with open(os.path.join(self.resource_path,"config.json"),"w",encoding="utf-8") as f:
-            dump(config_info, f, ensure_ascii=False, indent=4)

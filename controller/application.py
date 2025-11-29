@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import PhotoImage, filedialog
-from tkinter.ttk import Combobox
 import ctypes
 import os
 from controller.procedure import Procedure
@@ -9,33 +8,45 @@ from tkinter import messagebox
 from model.account import Account
 from threading import Thread
 from service.strategyService import StrategyService
+from service.configurationService import ConfigurationService
+from components.widget import Widget
 
 
 class APPLICATION:
-    """the GUI for user to interact with the program"""
-
     def __init__(self, master):
-        """the basic attributes for GUI and the initilization
+        """程序的GUI界面
 
         Args:
-            master (tkinter.Tk()): the window handling
+            master (Tk): tkinter的窗口句柄
         """
         self.master = master
         self.master.title("Elysian")
         self.master.iconbitmap("resources\\ui\\logo.ico")
         self.master["bg"] = "#FFFFFF"
         self.tasks_list = [tk.IntVar() for _ in range(6)]
+        # 初始化执行线程与遮罩窗口
         self.procedure = Procedure()
         self.procedure_thread = Thread()
-        # encapsulate the validation function to be used in other widget
-        self.validator_number = self.master.register(self.validate_number_input)
-        self.create_navbar()
-        self.create_content()
         self.set_window_size()
+        # 顶部导航栏容器
+        self.navbar_frame = tk.Frame(self.master, bg="#FFFFFF", height=50)
+        self.navbar_frame.place(x=0, y=0, relwidth=1)
+        # 顶部导航栏按钮列表，用于调整按钮激活状态
+        self.navbar_buttons = []
+        self.create_navbar()
+        # 内容部分容器
+        self.content_frame = tk.Frame(self.master, bg="#FFFFFF")
+        self.content_frame.place(x=0, y=50, relwidth=1, relheight=1)
+        # 初始化各个处理业务逻辑的类
+        self.confiurationService = ConfigurationService()
+        self.accountService = AccountService()
+        self.strategyService = StrategyService()
+        # 初始显示启动页
+        self.launch_page()
 
     def set_window_size(self):
-        """set window size and make it appear in the center of the screen"""
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # get system's DPI
+        """根据系统DPI设置窗口大小并居中显示"""
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 获取系统DPI缩放
         WIDTH = 800
         HEIGHT = 600
         SCREEN_WIDTH = self.master.winfo_screenwidth()
@@ -45,265 +56,103 @@ class APPLICATION:
         self.master.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, LEFT, TOP))
         self.master.minsize(800, 600)
 
-    def hoverEffect(self, button, leave_bg="#FFFFFF"):
-        """add hover effect for the button
-
-        Args:
-            button (tkinter.Button): the button needs to add hover effect
-            leave_bg (str, optional): the color when the mouse leaves the button. Defaults to "#FFFFFF".
-        """
-
-        def on_enter(event):
-            """the effect when mouse hovers the button
-
-            Args:
-                event (event): the tkinter event
-            """
-            if button["fg"] != "#FF9800":
-                button["bg"] = "#FCE4EC"
-                button["fg"] = "#E91E63"
-
-        def on_leave(event):
-            """the effect when mouse leaves the button
-
-            Args:
-                event (event): the tkinter event
-            """
-            if button["fg"] != "#FF9800":
-                button["bg"] = leave_bg
-                button["fg"] = "#000000"
-
-        button.bind("<Enter>", on_enter)
-        button.bind("<Leave>", on_leave)
-
     def create_navbar(self):
-        """create navbar"""
-        # navbar container
-        self.navbar = tk.Frame(self.master, bg="#FFFFFF", height=50)
-        self.navbar.place(x=0, y=0, relwidth=1)
-        # button style
-        self.button_style = {
-            "bg": "#E3E4E5",
-            "fg": "#000000",
-            "font": ("微软雅黑", 12),
-            "activebackground": "#FFF8E1",
-            "activeforeground": "#FF9800",
-        }
-        # navbar button list, for justify actived button style
-        self.navbar_buttons = []
-        # button information
+        """创建顶部导航栏"""
         navbar_buttons_information = [
             {"text": "一键启动", "command": self.launch_page},
             {"text": "策略配置", "command": self.strategy_page},
-            {"text": "软件设置", "command": self.config_page},
+            {"text": "软件设置", "command": self.configuration_page},
             {"text": "软件信息", "command": self.information_page},
         ]
-        # add button
-        for i, item in enumerate(navbar_buttons_information):
-            btn = tk.Button(
-                self.navbar,
-                text=item["text"],
-                command=item["command"],
-                **self.button_style
+        for i, info in enumerate(navbar_buttons_information):
+            button = Widget.create_hover_button(
+                self.navbar_frame, info["text"], info["command"], relief="raised"
             )
-            btn.place(relx=0.25 * i, y=0, relwidth=0.25, relheight=1)
-            self.navbar_buttons.append(btn)
-            self.hoverEffect(btn, "#E3E4E5")
+            button.place(relx=0.25 * i, y=0, relwidth=0.25, relheight=1)
+            self.navbar_buttons.append(button)
 
-    def clear_content(self):
-        """destroy all widgets in content frame"""
-        for widget in self.content_frame.winfo_children():
+    def destroy_child_widgets(self, master):
+        """摧毁master的所有子控件
+
+        Args:
+            master (widget): 任意含有子控件的tkinter组件
+        """
+        for widget in master.winfo_children():
             widget.destroy()
 
-    def set_active_button(self, index, btn_list, default_bg="#FFFFFF"):
-        """justify the targeted button to active style and justify other buttons in list back to normal style
+    def clear_content(self, index):
+        """清除内容容器的控件并激活对应的导航栏按钮
 
         Args:
-            index (int): the button index in the button list
-            btn_list (List<tkinter.button>): a list contains several buttons
-            default_bg (str, optional): the background color of normal button style. Defaults to "#FFFFFF".
+            index (int): 导航栏按钮在列表中的索引
         """
-        for i, btn in enumerate(btn_list):
-            if i == index:
-                btn["bg"] = "#FFF8E1"
-                btn["fg"] = "#FF9800"
-            else:
-                btn["bg"] = default_bg
-                btn["fg"] = "#000000"
+        self.destroy_child_widgets(self.content_frame)
+        Widget.set_active_button(index, self.navbar_buttons)
 
-    def create_content(self):
-        """create a frame as content container"""
-        # content container
-        self.content_frame = tk.Frame(self.master, bg="#FFFFFF")
-        self.content_frame.place(x=0, y=50, relwidth=1, relheight=1)
-        self.launch_page()
-
-    def update_rectangle(
-        self, event, widget, x1_gap, y1_gap, x2_gap, y2_gap, radius=25, **kwargs
-    ):
-        """draw a rectangle for the widget
+    def clear_canvas(self, canvas, text, index=-1, button_list=[]):
+        """清除圆角矩形画布内的控件，更新标题为指定文本，激活对应按钮(可选)
 
         Args:
-            event (event): the event to trigger this function
-            widget (tkinter.contoller): the widget needs to draw a rectangle
-            x1_gap (int): the x-distance of left-top point and widget's left boundary
-            y1_gap (int): the y-distance of left-top point and widget's top boundary
-            x2_gap (int): the x-distance of right-bottom point and widget's right boundary
-            y2_gap (int): the y-distance of right-bottom point and widget's bottom boundary
-            radius (int, optional): the radius of the rectangle. Defaults to 25.
+            canvas (canvas): 圆角矩形画布
+            text (String): 新的标题
+            index (int, optional): 要激活的按钮在列表中的索引. Defaults to -1.
+            button_list (list, optional): 按钮的列表. Defaults to [].
         """
-        if widget.rect_id is not None:
-            widget.delete(widget.rect_id)
-        width = widget.winfo_width()
-        height = widget.winfo_height()
-        x1 = x1_gap
-        x2 = width - x2_gap
-        y1 = y1_gap
-        y2 = height - y2_gap
-        points = [
-            x1 + radius,
-            y1,
-            x1 + radius,
-            y1,
-            x2 - radius,
-            y1,
-            x2 - radius,
-            y1,
-            x2,
-            y1,
-            x2,
-            y1 + radius,
-            x2,
-            y1 + radius,
-            x2,
-            y2 - radius,
-            x2,
-            y2 - radius,
-            x2,
-            y2,
-            x2 - radius,
-            y2,
-            x2 - radius,
-            y2,
-            x1 + radius,
-            y2,
-            x1 + radius,
-            y2,
-            x1,
-            y2,
-            x1,
-            y2 - radius,
-            x1,
-            y2 - radius,
-            x1,
-            y1 + radius,
-            x1,
-            y1 + radius,
-            x1,
-            y1,
-        ]
-        widget.rect_id = widget.create_polygon(points, **kwargs, smooth=True)
-
-    def validate_number_input(self, text):
-        """validate the text, only return true when the text is digit or empty
-
-        Args:
-            text (String): the text be validated
-
-        Returns:
-            boolean: whether the text is digit (empty) or not
-        """
-        return text.isdigit() or text == ""
+        self.destroy_child_widgets(canvas)
+        tk.Label(
+            canvas,
+            text=text,
+            font=("微软雅黑", 12),
+            bg="#FFFFFF",
+            fg="#FF9800",
+        ).place(relx=0.15, y=5)
+        if index != -1 and button_list:
+            Widget.set_active_button(index, button_list)
 
     def launch_page(self):
-        """create launch page"""
-        self.clear_content()
-        self.set_active_button(0, self.navbar_buttons, default_bg="#E3E4E5")
-        # create the left canvas for displaying tasks list
-        canvas_tasks = tk.Canvas(self.content_frame, bg="#FFFFFF", highlightthickness=0)
-        canvas_tasks.place(x=0, y=0, relwidth=0.3, relheight=0.65)
-        canvas_tasks.rect_id = None
-        canvas_tasks.bind(
-            "<Configure>",
-            lambda event: self.update_rectangle(
-                event,
-                canvas_tasks,
-                10,
-                20,
-                10,
-                10,
-                fill="#FFFFFF",
-                outline="#FFA6C3",
-                width=1,
-            ),
+        """创建一键启动页面"""
+        self.clear_content(0)
+        # 创建左侧画布用于列出任务清单
+        canvas_tasks = Widget.create_round_rectangle_canvas(
+            self.content_frame, 10, 20, 10, 10, "#FFA6C3"
         )
+        canvas_tasks.place(x=0, y=0, relwidth=0.3, relheight=0.65)
 
-        def clear_canvas_setting(text):
-            """destroy all widgets in the setting canvas and display the title of the setting canvas
-
-            Args:
-                text (String): the title of the setting canvas
-            """
-            for widget in canvas_setting.winfo_children():
-                widget.destroy()
-            tk.Label(
-                canvas_setting,
-                text=text,
-                font=("微软雅黑", 12),
-                bg="#FFFFFF",
-                fg="#FF9800",
-            ).place(relx=0.15, y=5)
-
-        def create_configure_working():
-            """create the working configuration canvas"""
-            clear_canvas_setting("家园打工")
-
-        def create_configure_Expedition():
-            """create the expedition configuration canvas"""
-            clear_canvas_setting("远征派遣")
-
-        def create_configure_commission():
-            """create the commission configuration canvas"""
-            clear_canvas_setting("舰团委托")
-
-        def create_configure_shopping():
-            """create the shopping configuration canvas"""
-            clear_canvas_setting("每日商店")
-
-        def create_configure_weekly_task():
-            """create the weekly task configuration canvas"""
-            clear_canvas_setting("周常任务")
-
-        def create_configure_Elysian():
-            """create the Elysian configuration canvas"""
-            clear_canvas_setting("往世乐土")
-            strategyService = StrategyService()
-            role_label = tk.Label(
-                canvas_setting,
-                text="角色选择:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
+        def configure_home_canvas():
+            """创建配置家园日常的画布"""
+            self.clear_canvas(canvas_configuration, "家园日常")
+            Widget.create_title_label(canvas_configuration, "家园打工").place(
+                relx=0.4, rely=0.04
             )
+
+        def configure_commission_canvas():
+            """创建配置舰团委托的画布"""
+            self.clear_canvas(canvas_configuration, "舰团委托")
+
+        def cconfigure_shopping_canvas():
+            """创建配置每日商店的画布"""
+            self.clear_canvas(canvas_configuration, "每日商店")
+
+        def configure_weekly_task_canvas():
+            """创建配置周常任务的画布"""
+            self.clear_canvas(canvas_configuration, "周常任务")
+
+        def configure_Elysian_canvas():
+            """创建配置往世乐土的画布"""
+            self.clear_canvas(canvas_configuration, "往世乐土")
+            role_label = Widget.create_subtitle_label(canvas_configuration, "角色选择:")
             role_label.place(x=20, rely=0.1)
-            strategy_list = strategyService.findAll()
-            role_list = [strategy.name_ch for strategy in strategy_list]
-            role = Combobox(
-                canvas_setting,
-                values=role_list,
-                justify="center",
-                font=("微软雅黑", 12),
-                state="readonly",
+            strategy_list = self.strategyService.find_all_strategy()
+            role_list = {strategy.name_ch: strategy.name for strategy in strategy_list}
+            role = Widget.create_combobox(
+                canvas_configuration,
+                list(role_list.keys()),
+                selected_function=lambda e: role_label.focus(),
             )
             role.place(x=130, rely=0.1, relwidth=0.65, height=30)
-            role.bind("<<ComboboxSelected>>", lambda e: role_label.focus())
-            tk.Label(
-                canvas_setting,
-                text="难度选择:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(x=20, rely=0.15)
+            Widget.create_subtitle_label(canvas_configuration, "难度选择:").place(
+                x=20, rely=0.15
+            )
             level_list = [
                 "终尽(2.75)",
                 "侵蚀(2.5)",
@@ -313,48 +162,36 @@ class APPLICATION:
                 "死荫(1.5)",
                 "空无(1)",
             ]
-            level = Combobox(
-                canvas_setting,
-                values=level_list,
-                justify="center",
-                font=("微软雅黑", 12),
-                state="readonly",
+            level = Widget.create_combobox(
+                canvas_configuration,
+                level_list,
+                selected_function=lambda e: role_label.focus(),
             )
             level.place(x=130, rely=0.16, relwidth=0.65, height=30)
-            level.bind("<<ComboboxSelected>>", lambda e: role_label.focus())
-            config_info = strategyService.getConfig()
-            role.current(role_list.index(config_info["name_ch"]))
-            level.current(level_list.index(config_info["level"]))
+            Elysian_configuration = self.confiurationService.get_Elysian_configuration()
+            role.current(list(role_list.keys()).index(Elysian_configuration["name_ch"]))
+            level.current(level_list.index(Elysian_configuration["level"]))
 
-            def save_config():
-                strategyService.saveConfig(
-                    {"name_ch": role.get(), "level": level.get()}
+            def save_Elysian_configuration():
+                self.confiurationService.save_Elysian_configuration(
+                    {
+                        "name_ch": role.get(),
+                        "level": level.get(),
+                        "name": role_list[role.get()],
+                    }
                 )
                 messagebox.showinfo(title="提示", message="配置保存成功")
 
-            tk.Button(
-                canvas_setting,
-                text="Save",
-                font=("Arial", 14, "bold"),
-                bg="#1CCD6F",
-                fg="#FFFFFF",
-                activebackground="#1CC4CD",
-                activeforeground="#FFFFFF",
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                highlightbackground="#DAA520",
-                highlightthickness=1,
-                command=save_config,
+            Widget.create_success_button(
+                canvas_configuration, "Save", save_Elysian_configuration
             ).place(relx=0.45, rely=0.25, relwidth=0.15, relheight=0.07)
 
         checkbuttons_information = [
-            {"text": "家园打工", "command": create_configure_working},
-            {"text": "远征派遣", "command": create_configure_Expedition},
-            {"text": "舰团委托", "command": create_configure_commission},
-            {"text": "每日商店", "command": create_configure_shopping},
-            {"text": "周常任务", "command": create_configure_weekly_task},
-            {"text": "往世乐土", "command": create_configure_Elysian},
+            {"text": "家园日常", "command": configure_home_canvas},
+            {"text": "舰团委托", "command": configure_commission_canvas},
+            {"text": "每日商店", "command": cconfigure_shopping_canvas},
+            {"text": "周常任务", "command": configure_weekly_task_canvas},
+            {"text": "往世乐土", "command": configure_Elysian_canvas},
         ]
         photo = PhotoImage(file="resources\\ui\\setting.png")
         for i, information in enumerate(checkbuttons_information):
@@ -375,35 +212,22 @@ class APPLICATION:
             )
             button_rear.image = photo
             button_rear.place(relx=0.7, rely=0.1 * (i + 1) + 0.01)
-        # create the right canvas for configuring a task
-        canvas_setting = tk.Canvas(
-            self.content_frame, bg="#FFFFFF", highlightthickness=0
+        # 创建右侧画布用于配置具体任务
+        canvas_configuration = Widget.create_round_rectangle_canvas(
+            self.content_frame, 10, 20, 10, 60, "#FF9800"
         )
-        canvas_setting.place(relx=0.35, y=0, relwidth=0.65, relheight=1)
-        canvas_setting.rect_id = None
-        canvas_setting.bind(
-            "<Configure>",
-            lambda event: self.update_rectangle(
-                event,
-                canvas_setting,
-                10,
-                20,
-                10,
-                60,
-                fill="#FFFFFF",
-                outline="#FF9800",
-                width=1,
-            ),
-        )
-        create_configure_working()
+        canvas_configuration.place(relx=0.35, y=0, relwidth=0.65, relheight=1)
+        configure_home_canvas()
 
         def start_perfrom_tasks():
-            """start a thread to perform the selected task"""
-            accountService = AccountService()
-            login_account = accountService.get_login_account()
+            """启动线程执行已选任务"""
+            login_account = self.accountService.get_login_account()
             if login_account is None:
                 messagebox.showerror(title="错误", message="尚未选择登录账户")
-            elif login_account.channel == "渠道服" and not accountService.get_emulator_config():
+            elif (
+                login_account.channel == "渠道服"
+                and not self.confiurationService.get_emulator_configuration()
+            ):
                 messagebox.showerror(title="错误", message="渠道服账号登录需配置模拟器")
             else:
                 tasks_list_int = []
@@ -421,300 +245,147 @@ class APPLICATION:
                     )
                     self.procedure_thread.start()
 
-        tk.Button(
-            self.content_frame,
-            text="启动",
-            font=("微软雅黑", 14, "bold"),
-            bg="#FFB6C1",
-            fg="#8B4513",
-            activebackground="#FF69B4",
-            activeforeground="#FFFFFF",
-            bd=0,
-            relief="flat",
-            cursor="hand2",
-            highlightbackground="#DAA520",
-            highlightthickness=1,
-            command=start_perfrom_tasks,
+        Widget.create_normal_button(
+            self.content_frame, "启动", start_perfrom_tasks
         ).place(relx=0.1, rely=0.7, relwidth=0.1, relheight=0.1)
 
     def strategy_page(self):
-        """create strategy page"""
-        self.clear_content()
-        self.set_active_button(1, self.navbar_buttons, default_bg="#E3E4E5")
+        """创建策略配置页"""
+        self.clear_content(1)
         tk.Label(self.content_frame, text="strategy_page").pack()
 
-    def config_page(self):
-        """create config page"""
-        self.clear_content()
-        self.set_active_button(2, self.navbar_buttons, default_bg="#E3E4E5")
-        # create the left canvas for displaying program configs
-        canvas_configs = tk.Canvas(
-            self.content_frame, bg="#FFFFFF", highlightthickness=0
+    def configuration_page(self):
+        """创建软件设置页面"""
+        self.clear_content(2)
+        # 创建左侧画布用于展示可修改设置列表
+        canvas_settings = Widget.create_round_rectangle_canvas(
+            self.content_frame, 10, 20, 10, 60, "#FFA6C3"
         )
-        canvas_configs.place(x=0, y=0, relwidth=0.2, relheight=1)
-        canvas_configs.rect_id = None
-        canvas_configs.bind(
-            "<Configure>",
-            lambda event: self.update_rectangle(
-                event,
-                canvas_configs,
-                10,
-                20,
-                10,
-                60,
-                fill="#FFFFFF",
-                outline="#FFA6C3",
-                width=1,
-            ),
-        )
+        canvas_settings.place(x=0, y=0, relwidth=0.2, relheight=1)
 
-        def clear_canvas_configuration(text):
-            """destroy all widgets in configuration canvas (right) and show the title of the configuration canvas
-
-            Args:
-                text (String): the title of the configuration canvas
-            """
-            for widget in canvas_setting.winfo_children():
-                widget.destroy()
-            tk.Label(
-                canvas_setting,
-                text=text,
-                font=("微软雅黑", 12),
-                bg="#FFFFFF",
-                fg="#FF9800",
-            ).place(relx=0.15, y=5)
-
-        def configure_account():
-            """create the account configuration canvas"""
-            clear_canvas_configuration("账户设置")
-            self.set_active_button(0, config_btns)
-            accountService = AccountService()
-            # the login account selected section
-            tk.Label(
-                canvas_setting,
-                text="登录账户",
-                font=("微软雅黑", 14, "bold"),
-                bg="#FFFFFF",
-                fg="#E91E63",
-            ).place(relx=0.45, y=40)
-            tk.Label(
-                canvas_setting,
-                text="uid:",
-                font=("Arial", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.05, rely=0.15)
-            account_list = accountService.findAll()
+        def configure_account_canvas():
+            """创建配置账户的画布"""
+            self.clear_canvas(
+                canvas_configuration,
+                "账户设置",
+                index=0,
+                button_list=configuration_buttons,
+            )
+            # 选择登录账户的部分
+            Widget.create_title_label(canvas_configuration, "登录账户").place(
+                relx=0.45, y=40
+            )
+            Widget.create_subtitle_label(canvas_configuration, "uid:").place(
+                relx=0.05, rely=0.15
+            )
+            account_list = self.accountService.find_all_account()
             uid_list = [account.uid for account in account_list]
-            login_uid = Combobox(
-                canvas_setting,
-                values=uid_list,
-                justify="center",
-                font=("Arial", 12),
-                state="readonly",
-            )
-            login_uid.place(relx=0.14, rely=0.15, relwidth=0.3, height=30)
-            login_uid.set("No login records")
-            tk.Label(
-                canvas_setting,
-                text="渠道:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.55, rely=0.15)
-            login_channel = tk.Entry(
-                canvas_setting,
-                font=("微软雅黑", 12),
-                justify="center",
-                relief="solid",
-                state="readonly",
-            )
-            login_channel.place(relx=0.65, rely=0.15, relwidth=0.3, height=30)
-            tk.Label(
-                canvas_setting,
-                text="账户:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.05, rely=0.25)
-            login_account = tk.Entry(
-                canvas_setting,
-                font=("Arial", 12),
-                justify="center",
-                relief="solid",
-                state="readonly",
-            )
-            login_account.place(relx=0.14, rely=0.25, relwidth=0.3, height=30)
-            tk.Label(
-                canvas_setting,
-                text="密码:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.55, rely=0.25)
-            login_password = tk.Entry(
-                canvas_setting,
-                font=("Arial", 12),
-                justify="center",
-                relief="solid",
-                state="readonly",
-            )
-            login_password.place(relx=0.65, rely=0.25, relwidth=0.3, height=30)
-
-            def show_account_detail(account):
-                """show the detail of the account
-
-                Args:
-                    account (Account): the account needs to be displayed
-                """
-                login_channel["state"] = "normal"
-                login_channel.delete(0, tk.END)
-                login_account["state"] = "normal"
-                login_account.delete(0, tk.END)
-                login_password["state"] = "normal"
-                login_password.delete(0, tk.END)
-                login_channel.insert(0, account.channel)
-                login_account.insert(0, account.account)
-                login_password.insert(0, account.password)
-                login_channel["state"] = "readonly"
-                login_account["state"] = "readonly"
-                login_password["state"] = "readonly"
 
             def login_uid_selected(event):
-                """show account's detail of the selected uid
+                """选择了uid后展示对应account的信息
 
                 Args:
-                    event (event): the event to trigger the function
+                    event (event): 触发事件
                 """
                 uid = login_uid.get()
                 for account in account_list:
                     if account.uid == uid:
                         show_account_detail(account)
                         break
-                # focus on another widget to avoid blue background after selection
+                # 聚焦于别的组件以消除选择框
                 login_account.focus()
 
-            login_uid.bind("<<ComboboxSelected>>", login_uid_selected)
-            # find the login account and show its detail
-            for i, account in enumerate(account_list):
-                if account.login == 1:
-                    login_uid.current(i)
-                    show_account_detail(account)
-                    break
+            login_uid = Widget.create_combobox(
+                canvas_configuration,
+                uid_list,
+                selected_function=login_uid_selected,
+                placeholder="No login records",
+            )
+            login_uid.place(relx=0.14, rely=0.15, relwidth=0.3, height=30)
+            Widget.create_subtitle_label(canvas_configuration, "渠道:").place(
+                relx=0.55, rely=0.15
+            )
+            login_channel = Widget.create_entry(canvas_configuration, state="readonly")
+            login_channel.place(relx=0.65, rely=0.15, relwidth=0.3, height=30)
+            Widget.create_subtitle_label(canvas_configuration, "账户:").place(
+                relx=0.05, rely=0.25
+            )
+            login_account = Widget.create_entry(canvas_configuration, state="readonly")
+            login_account.place(relx=0.14, rely=0.25, relwidth=0.3, height=30)
+            Widget.create_subtitle_label(canvas_configuration, "密码:").place(
+                relx=0.55, rely=0.25
+            )
+            login_password = Widget.create_entry(canvas_configuration, state="readonly")
+            login_password.place(relx=0.65, rely=0.25, relwidth=0.3, height=30)
+
+            def show_account_detail(account):
+                """显示账户的详细信息
+
+                Args:
+                    account (Account): 要显示信息的account
+                """
+                login_channel.write(account.channel)
+                login_account.write(account.account)
+                login_password.write(account.password)
+
+            # 显示之前配置的登录账户
+            prev_login_account = self.accountService.get_login_account()
+            if prev_login_account is not None:
+                login_uid.current(account_list.index(prev_login_account))
+                show_account_detail(prev_login_account)
 
             def save_login_account():
-                """save the login account"""
-                accountService.update_login_account(login_uid.get())
+                """保存登录账户"""
+                self.accountService.update_login_account(login_uid.get())
                 messagebox.showinfo(title="提示", message="新登录账户保存成功")
 
-            tk.Button(
-                canvas_setting,
-                text="Save",
-                font=("Arial", 14, "bold"),
-                bg="#1CCD6F",
-                fg="#FFFFFF",
-                activebackground="#1CC4CD",
-                activeforeground="#FFFFFF",
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                highlightbackground="#DAA520",
-                highlightthickness=1,
-                command=save_login_account,
+            Widget.create_success_button(
+                canvas_configuration, "Save", save_login_account
             ).place(relx=0.28, rely=0.32, relwidth=0.15, relheight=0.07)
 
             def delete_account():
-                """delete the selected account"""
-                accountService.delete(login_uid.get())
-                configure_account()
+                """删除选中的账户"""
+                self.accountService.delete(login_uid.get())
+                configure_account_canvas()
                 messagebox.showinfo(title="提示", message="账户已成功删除")
 
-            tk.Button(
-                canvas_setting,
-                text="Delete",
-                font=("Arial", 14, "bold"),
-                bg="#CD691C",
-                fg="#FFFFFF",
-                activebackground="#CD1C37",
-                activeforeground="#FFFFFF",
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                highlightbackground="#DAA520",
-                highlightthickness=1,
-                command=delete_account,
+            Widget.create_danger_button(
+                canvas_configuration, "Delete", delete_account
             ).place(relx=0.6, rely=0.32, relwidth=0.15, relheight=0.07)
-            # the section of creating a new account
-            tk.Label(
-                canvas_setting,
-                text="创建账户",
-                font=("微软雅黑", 14, "bold"),
-                bg="#FFFFFF",
-                fg="#E91E63",
-            ).place(relx=0.45, rely=0.4)
-            tk.Label(
-                canvas_setting,
-                text="uid:",
-                font=("Arial", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.05, rely=0.5)
-
-            new_uid = tk.Entry(
-                canvas_setting,
-                justify="center",
-                font=("Arial", 12),
-                relief="solid",
-                validate="key",
-                validatecommand=(self.validator_number, "%P"),
+            # 创建账户的部分
+            Widget.create_title_label(canvas_configuration, "创建账户").place(
+                relx=0.45, rely=0.4
             )
+            Widget.create_subtitle_label(canvas_configuration, "uid:").place(
+                relx=0.05, rely=0.5
+            )
+
+            new_uid = Widget.create_entry(canvas_configuration, number_validator=True)
             new_uid.place(relx=0.14, rely=0.5, relwidth=0.3, height=30)
-            tk.Label(
-                canvas_setting,
-                text="渠道:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.55, rely=0.5)
-            new_channel = Combobox(
-                canvas_setting,
-                font=("微软雅黑", 12),
-                justify="center",
-                state="readonly",
-                values=["官服", "Android", "ios", "渠道服"],
+            Widget.create_subtitle_label(canvas_configuration, "渠道:").place(
+                relx=0.55, rely=0.5
+            )
+            new_channel = Widget.create_combobox(
+                canvas_configuration,
+                ["官服", "Android", "ios", "渠道服"],
+                selected_function=lambda e: login_account.focus(),
             )
             new_channel.place(relx=0.65, rely=0.5, relwidth=0.3, height=30)
-            new_channel.bind("<<ComboboxSelected>>", lambda e: login_account.focus())
-            tk.Label(
-                canvas_setting,
-                text="账户:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.05, rely=0.6)
-            new_account = tk.Entry(
-                canvas_setting,
-                font=("Arial", 12),
-                justify="center",
-                relief="solid",
-                validate="key",
-                validatecommand=(self.validator_number, "%P"),
+            Widget.create_subtitle_label(canvas_configuration, "账户:").place(
+                relx=0.05, rely=0.6
+            )
+            new_account = Widget.create_entry(
+                canvas_configuration, number_validator=True
             )
             new_account.place(relx=0.14, rely=0.6, relwidth=0.3, height=30)
-            tk.Label(
-                canvas_setting,
-                text="密码:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.55, rely=0.6)
-            new_password = tk.Entry(
-                canvas_setting, font=("Arial", 12), justify="center", relief="solid"
+            Widget.create_subtitle_label(canvas_configuration, "密码:").place(
+                relx=0.55, rely=0.6
             )
+            new_password = Widget.create_entry(canvas_configuration)
             new_password.place(relx=0.65, rely=0.6, relwidth=0.3, height=30)
 
             def create_new_account():
-                """validate whether the account is already existing, if not, create a new account"""
+                """验证账户是否已存在，不存在则创建新账户"""
                 account = Account()
                 account.account = new_account.get()
                 account.channel = new_channel.get()
@@ -734,200 +405,122 @@ class APPLICATION:
                 if account in account_list:
                     messagebox.showerror(title="错误", message="该账户已存在")
                     return
-                accountService.save(account)
-                configure_account()
+                self.accountService.save(account)
+                configure_account_canvas()
                 messagebox.showinfo(title="提示", message="新账户创建成功")
 
-            tk.Button(
-                canvas_setting,
-                text="Create",
-                font=("Arial", 14, "bold"),
-                bg="#1CCD6F",
-                fg="#FFFFFF",
-                activebackground="#1CC4CD",
-                activeforeground="#FFFFFF",
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                highlightbackground="#DAA520",
-                highlightthickness=1,
-                command=create_new_account,
+            Widget.create_success_button(
+                canvas_configuration, "Create", create_new_account
             ).place(relx=0.43, rely=0.7, relwidth=0.15, relheight=0.07)
 
-        def configure_update():
-            """create the update configuration canvas"""
-            clear_canvas_configuration("更新设置")
-            self.set_active_button(1, config_btns)
-
-        def configure_hotkey():
-            """create the hotkey configuration canvas"""
-            clear_canvas_configuration("热键设置")
-            self.set_active_button(2, config_btns)
-
-        def configure_emulator():
-            clear_canvas_configuration("模拟器设置")
-            self.set_active_button(3, config_btns)
-            tk.Label(
-                canvas_setting,
-                text="模拟器路径",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#E91E63",
-            ).place(relx=0.42, rely=0.08)
-            emulator = tk.Entry(
-                canvas_setting,
-                font=("Arial", 12),
-                bg="#FFFFFF",
-                fg="#000000",
-                relief="solid",
-                state="readonly",
-                justify="center",
+        def configure_update_canvas():
+            """创建配置更新设置的画布"""
+            self.clear_canvas(
+                canvas_configuration,
+                "更新设置",
+                index=1,
+                button_list=configuration_buttons,
             )
+
+        def configure_hotkey_canvas():
+            """创建配置热键的画布"""
+            self.clear_canvas(
+                canvas_configuration,
+                "热键设置",
+                index=2,
+                button_list=configuration_buttons,
+            )
+
+        def configure_emulator_canvas():
+            """创建配置模拟器的画布"""
+            self.clear_canvas(
+                canvas_configuration,
+                "模拟器设置",
+                index=3,
+                button_list=configuration_buttons,
+            )
+            Widget.create_title_label(canvas_configuration, "模拟器路径").place(
+                relx=0.42, rely=0.08
+            )
+            emulator = Widget.create_entry(canvas_configuration, state="readonly")
             emulator.place(relx=0.05, rely=0.15, relwidth=0.7, height=30)
 
             def browse_emulator():
+                """浏览文件选择模拟器路径"""
                 emulator_path = filedialog.askopenfilename(
                     title="请选择模拟器路径",
                     filetypes=[("可执行文件", "*.exe"), ("所有文件", "*.*")],
                 )
                 if emulator_path:
-                    emulator["state"] = "normal"
-                    emulator.delete(0, tk.END)
-                    emulator.insert(0, emulator_path)
-                    emulator["state"] = "readonly"
+                    emulator.write(emulator_path)
 
-            tk.Button(
-                canvas_setting,
-                text="Browse",
-                font=("Arial", 12, "bold"),
-                bg="#1CCD6F",
-                fg="#FFFFFF",
-                activebackground="#1CC4CD",
-                activeforeground="#FFFFFF",
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                highlightbackground="#DAA520",
-                highlightthickness=1,
-                command=browse_emulator,
+            Widget.create_success_button(
+                canvas_configuration, "Browse", browse_emulator
             ).place(relx=0.8, rely=0.13, relwidth=0.15, height=50)
-            tk.Label(
-                canvas_setting,
-                text="模拟器编号:",
-                font=("微软雅黑", 12, "bold"),
-                bg="#FFFFFF",
-                fg="#FFA6C3",
-            ).place(relx=0.05, rely=0.24)
-            index = tk.Entry(
-                canvas_setting,
-                font=("Arial", 12),
-                bg="#FFFFFF",
-                fg="#000000",
-                relief="solid",
-                justify="center",
-                validate="key",
-                validatecommand=(self.validator_number, "%P"),
+            Widget.create_subtitle_label(canvas_configuration, "模拟器编号:").place(
+                relx=0.05, rely=0.24
             )
+            index = Widget.create_entry(canvas_configuration, number_validator=True)
             index.place(relx=0.25, rely=0.25, relwidth=0.6, height=30)
-            
 
-            def save_emulator_config():
+            def save_emulator_configuration():
+                """保存模拟器配置信息"""
                 path = emulator.get()
                 if path == "No path configuration information":
-                    messagebox.showerror(title="错误",message="尚未选择模拟器路径")
+                    messagebox.showerror(title="错误", message="尚未选择模拟器路径")
                     return
-                if index.get()=="":
-                    messagebox.showerror(title="错误",message="尚未设置模拟器编号")
+                if index.get() == "":
+                    messagebox.showerror(title="错误", message="尚未设置模拟器编号")
                     return
-                accountService.save_emulator_config(
+                self.confiurationService.save_emulator_configuration(
                     {"path": path, "index": int(index.get())}
                 )
                 messagebox.showinfo(title="提示", message="模拟器配置保存成功")
 
-            tk.Button(
-                canvas_setting,
-                text="Save",
-                font=("Arial", 12, "bold"),
-                bg="#1CCD6F",
-                fg="#FFFFFF",
-                activebackground="#1CC4CD",
-                activeforeground="#FFFFFF",
-                bd=0,
-                relief="flat",
-                cursor="hand2",
-                highlightbackground="#DAA520",
-                highlightthickness=1,
-                command=save_emulator_config,
+            Widget.create_success_button(
+                canvas_configuration, "Save", save_emulator_configuration
             ).place(relx=0.43, rely=0.32, relwidth=0.15, height=40)
-            # load emulator config
-            accountService = AccountService()
-            emulator_info = accountService.get_emulator_config()
-            emulator["state"] = "normal"
-            emulator.delete(0, tk.END)
-            index.delete(0, tk.END)
-            if emulator_info:
-                emulator.insert(0, emulator_info["path"])
-                index.insert(0, emulator_info["index"])
+            # 显示之前的模拟器配置信息
+            emulator_configuration = (
+                self.confiurationService.get_emulator_configuration()
+            )
+            if emulator_configuration:
+                emulator.write(emulator_configuration["path"])
+                index.write(emulator_configuration["index"])
             else:
-                emulator.insert(0, "No path configuration information")
-            emulator["state"] = "readonly"
+                emulator.write("No path configuration information")
 
         btn_configs_info = [
-            {"text": "账户设置", "command": configure_account},
-            {"text": "更新设置", "command": configure_update},
-            {"text": "热键设置", "command": configure_hotkey},
-            {"text": "模拟器设置", "command": configure_emulator},
+            {"text": "账户设置", "command": configure_account_canvas},
+            {"text": "更新设置", "command": configure_update_canvas},
+            {"text": "热键设置", "command": configure_hotkey_canvas},
+            {"text": "模拟器设置", "command": configure_emulator_canvas},
         ]
-        config_btns = []
+        configuration_buttons = []
         for i, info in enumerate(btn_configs_info):
-            btn = tk.Button(
-                canvas_configs,
-                text=info["text"],
-                font=("微软雅黑", 12),
-                bg="#FFFFFF",
-                fg="#000000",
-                activebackground="#FFF8E1",
-                activeforeground="#FF9800",
-                relief="flat",
-                command=info["command"],
+            btn = Widget.create_hover_button(
+                canvas_settings, info["text"], info["command"]
             )
             btn.place(relx=0.1, y=25 + 30 * i, relwidth=0.8, height=30)
-            self.hoverEffect(btn)
-            config_btns.append(btn)
-        # create the right canvas for configuring the program setting
-        canvas_setting = tk.Canvas(
-            self.content_frame, bg="#FFFFFF", highlightthickness=0
+            configuration_buttons.append(btn)
+        # 创建右侧画布用于配置具体设置项
+        canvas_configuration = Widget.create_round_rectangle_canvas(
+            self.content_frame, 10, 20, 10, 60, "#FF9800"
         )
-        canvas_setting.place(relx=0.25, y=0, relwidth=0.75, relheight=1)
-        canvas_setting.rect_id = None
-        canvas_setting.bind(
-            "<Configure>",
-            lambda event: self.update_rectangle(
-                event,
-                canvas_setting,
-                10,
-                20,
-                10,
-                60,
-                fill="#FFFFFF",
-                outline="#FF9800",
-                width=1,
-            ),
-        )
-        configure_account()
+        canvas_configuration.place(relx=0.25, y=0, relwidth=0.75, relheight=1)
+        configure_account_canvas()
 
     def information_page(self):
-        """create information page"""
-        self.clear_content()
-        self.set_active_button(3, self.navbar_buttons, default_bg="#E3E4E5")
+        """创建软件信息页面"""
+        self.clear_content(3)
         tk.Label(self.content_frame, text="information_page").pack()
 
 
 def on_closing(window):
-    """the closing function for the GUI, ensure all process are terminated
+    """GUI的关闭函数，使GUI关闭时，所有进程终止
 
     Args:
-        window (tkinter.Tk): the window handling
+        window (Tk): tkinter窗口句柄
     """
     window.quit()
     window.destroy()
@@ -935,7 +528,7 @@ def on_closing(window):
 
 
 def GUI():
-    """boot a GUI application"""
+    """启动GUI"""
     Elysian = tk.Tk()
     application = APPLICATION(Elysian)
     Elysian.protocol("WM_DELETE_WINDOW", lambda: on_closing(Elysian))

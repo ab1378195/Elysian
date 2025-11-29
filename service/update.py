@@ -11,6 +11,7 @@ from subprocess import Popen, CREATE_NO_WINDOW
 
 class Update:
     def __init__(self):
+        """实现自动更新的类"""
         self.api_url = "https://api.github.com/repos/ab1378195/Elysian/releases/latest"
         with open("resources//version//version.json", "r", encoding="utf-8") as f:
             version_information = load(f)
@@ -19,9 +20,10 @@ class Update:
         self.new_version = ""
         self.notification = Notification()
         self.download_path = "update.zip"
-        self.exclude_list = ["account"]
+        self.exclude_list = ["account", "configuration"]
 
     def check_update(self):
+        """检查是否需要更新，若需要则弹出询问框并在用户确认后启动更新程序"""
         try:
             response = requests.get(self.api_url)
             response.raise_for_status()
@@ -38,6 +40,7 @@ class Update:
             self.notification.info(title="检查更新失败", message=f"获取远程版本失败")
 
     def download(self):
+        """下载最新版压缩包"""
         download_url = f"https://github.com/ab1378195/Elysian/releases/download/{self.new_version}/Elysian-{self.environment}-{self.new_version}.zip"
         try:
             response = requests.get(download_url, stream=True)
@@ -53,11 +56,12 @@ class Update:
             self.notification.info(title="下载失败", message=f"下载新版本失败")
 
     def merge(self):
+        """合并新版本文件"""
         try:
             extract_path = "temp"
             with ZipFile(self.download_path, "r") as zip:
                 zip.extractall(extract_path)
-            # deal with the resources first (have excluded files)
+            # 先处理resources文件夹(内含不更新的排除项)
             for file in os.listdir(extract_path + "//resources"):
                 if file in self.exclude_list:
                     continue
@@ -70,9 +74,9 @@ class Update:
                         shutil.rmtree(dst)
                     shutil.copytree(src, dst)
             shutil.rmtree(extract_path + "//resources")
-            # python can delete itself
+            # 如果是Python环境，可以删除自身
             if self.environment == "Python":
-                # deal with normal files
+                # 合并一般文件
                 for file in os.listdir(extract_path):
                     src = os.path.join(extract_path, file)
                     dst = os.path.join(".", file)
@@ -85,9 +89,9 @@ class Update:
                 os.remove(self.download_path)
                 shutil.rmtree(extract_path)
                 self.notification.info(title="更新完成", message="新版本合并完成。")
-                # restart the program
+                # 重启程序
                 os.execv(sys.executable, ["python"] + sys.argv)
-            # exe needs to have a bat for help
+            # 如果是EXE环境，借助bat实现自删和重启
             elif self.environment == "EXE":
                 bat_content = f"""
 @echo off

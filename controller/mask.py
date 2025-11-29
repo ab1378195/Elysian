@@ -7,14 +7,12 @@ from time import sleep
 
 
 class Mask:
-    """the mask window for displaying logs, to make user know processing status. The mask window only accepts the logs from procedure."""
-
     def __init__(self, master, log_queue):
-        """the basic attribute for the mask window and initilization
+        """遮罩窗口，用于在任务执行过程中显示日志信息
 
         Args:
-            master (tkinter.Tk): window handling
-            log_queue (Queue): the communication queue between mask window and procedure
+            master (Tk): tkinter窗口句柄
+            log_queue (Queue): 通信队列，从Procedure处获取要显示的日志信息
         """
         self.master = master
         self.TRANSCOLOUR = "gray"
@@ -30,10 +28,10 @@ class Mask:
         self.communication_thread.start()
 
     def create_text(self):
-        """create a text controller to display the log
+        """创建一个Text控件
 
         Returns:
-            tkinter.Text: a text controller
+            Text: 创建的Text控件
         """
         text = tk.Text(
             self.master,
@@ -50,17 +48,17 @@ class Mask:
         return text
 
     def write_log(self, log):
-        """write logs on the text controller
+        """书写日志信息
 
         Args:
-            log (List): a length-2 list, the first element is the content of the log, the second element is the tag of the log ("INF1", "INF2", "ERR")
+            log (List): 含两个元素的列表，第一个为日志信息，第二个为日志等级
         """
-        # add text controller if less than maximum num
+        # 当Text组件数未达上限时，继续添加Text组件
         if len(self.text_list) < self.MAX_NUM_TEXT:
             text = self.create_text()
             text.grid(row=len(self.text_list), column=0, padx=0, pady=0)
             self.text_list.append(text)
-        # delete the oldest text controller and add a new text controller, justify the row parameter to scroll logs display 
+        # Text组件数到达上限后删除最老的Text组件，并调整其它Text组件的位置
         else:
             text = self.text_list.pop(0)
             text.destroy()
@@ -69,22 +67,21 @@ class Mask:
             text = self.create_text()
             text.grid(row=self.MAX_NUM_TEXT - 1, column=0, padx=0, pady=0)
             self.text_list.append(text)
-        # write time
+        # 书写当前时间
         text = self.text_list[-1]
         text.insert(tk.END, "[" + strftime("%H:%M:%S"), "TIME")
-        # write log level
+        # 书写日志等级
         text.insert(tk.END, " " + log[1][0:3], log[1][0:3])
         text.insert(tk.END, "] ", "TIME")
-        # write log content
+        # 书写日志内容
         text.insert(tk.END, log[0], log[1])
         self.master.update()
 
     def check_queue(self):
-        """check is there any information in the communication queue that needs to be written
-        """
+        """检查是否有日志需要被书写"""
         while True:
             try:
-                # only show logs when the activated window is game
+                # 仅在当前激活窗口为崩坏3时显示遮罩窗口
                 if getActiveWindowTitle() == "崩坏3":
                     self.master.deiconify()
                 else:
@@ -98,10 +95,10 @@ class Mask:
 
 
 def launch_mask(log_queue):
-    """launch the mask window
+    """启动遮罩窗口
 
     Args:
-        log_queue (Queue): the queue used to communicate between mask thread and procedure thread
+        log_queue (Queue): 与Procedure之间的通信队列
     """
     mask = tk.Tk()
     logger = Mask(mask, log_queue)

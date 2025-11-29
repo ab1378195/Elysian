@@ -1,23 +1,22 @@
 class Account:
-    """the account entity refers to the json files in resources//account"""
-
     def __init__(self):
-        """define the attributes for the class Account, the uid is the primary key"""
+        """记录用户账户信息的类
+        """
         self.uid = ""
         self.channel = ""
         self.account = ""
         self.password = ""
-        # among all account objects, there could only one object's login is 1, others should be 0
-        self.login = 0
+        # 所有的account objects中，只有一个的login可为1，其余为0
+        self.login = False
 
     def __eq__(self, other):
-        """define the equation between Account objects, if the uid is same, the objects is same
+        """定义account与其它object之间的比较，uid相同则相同
 
         Args:
-            other (Object): the other object for comparaing
+            other (object): 比较的object
 
         Returns:
-            boolean: whether the other object is the same with the current object
+            boolean: True为同一个account
         """
         if isinstance(other, Account):
             return self.uid == other.uid
