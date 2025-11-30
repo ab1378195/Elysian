@@ -350,6 +350,27 @@ class Widget:
             entry["validatecommand"] = (validator_number, "%P")
         return entry
 
+    def create_radiobutton(master, text, variable, value):
+        """创建单选按钮
+
+        Args:
+            master (widget): 父组件
+            text (String): 按钮文本
+            variable (IntVar): 按钮绑定的变量
+            value (int): 按钮被选中时对应的值
+
+        Returns:
+            Radiobutton: 创建的radiobutton
+        """
+        return tk.Radiobutton(
+            master=master,
+            text=text,
+            bg="#FFFFFF",
+            font=("微软雅黑", 12),
+            variable=variable,
+            value=value,
+        )
+
 
 class CustomEntry(tk.Entry):
     def __init__(self, master=None, **kwargs):

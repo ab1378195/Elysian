@@ -3,6 +3,7 @@ from controller.mask import launch_mask
 from queue import Queue, Empty
 from service.launch import Launch
 from service.Elysian import Elysian
+from service.material import Material
 
 
 class Procedure:
@@ -36,8 +37,8 @@ class Procedure:
                 self.write_log(log)
             except Empty:
                 pass
-            except Exception as e:
-                self.log_queue.put([e, "ERR"])
+            # except Exception as e:
+            #     self.log_queue.put([e, "ERR"])
 
     def perform_tasks(self, tasks_list):
         """执行所选的各项任务
@@ -52,12 +53,16 @@ class Procedure:
         launch_thread.start()
         self.receive(launch_thread_queue)
         if tasks_list[0] == 1:
-            home_thread_queue = Queue()
+            material_thread_queue = Queue()
+            material = Material(material_thread_queue)
+            material_thread = Thread(target=material.run, daemon=True)
+            material_thread.start()
+            self.receive(material_thread_queue)
 
-        if tasks_list[5] == 1:
-            Elysian_deep_thread_queue = Queue()
-            elysian = Elysian(Elysian_deep_thread_queue)
-            Elysian_deep_thread = Thread(target=elysian.run, daemon=True)
-            Elysian_deep_thread.start()
-            self.receive(Elysian_deep_thread_queue)
+        # if tasks_list[5] == 1:
+        #     Elysian_deep_thread_queue = Queue()
+        #     elysian = Elysian(Elysian_deep_thread_queue)
+        #     Elysian_deep_thread = Thread(target=elysian.run, daemon=True)
+        #     Elysian_deep_thread.start()
+        #     self.receive(Elysian_deep_thread_queue)
         self.write_log(["所有任务均已完成", "INF2"])

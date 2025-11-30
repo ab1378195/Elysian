@@ -37,3 +37,19 @@ class ConfigurationService:
             dict: 往世乐土配置信息字典，未找到返回{ }
         """
         return self.configurationRepository.get_configuration("Elysian")
+
+    def get_material_configuration(self):
+        """获取材料活动相关配置信息
+
+        Returns:
+            dict: 材料活动配置信息字典，未找到返回{ }
+        """
+        return self.configurationRepository.get_configuration("material")
+    
+    def save_material_configuration(self, configuration):
+        """保存材料活动相关配置信息
+
+        Args:
+            configuration (dict): 材料活动配置信息
+        """
+        self.configurationRepository.save_configuration(configuration, "material")

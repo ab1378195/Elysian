@@ -118,6 +118,41 @@ class APPLICATION:
         )
         canvas_tasks.place(x=0, y=0, relwidth=0.3, relheight=0.65)
 
+        def configure_material_canvas():
+            """创建配置材料活动的画布"""
+            self.clear_canvas(canvas_configuration, "材料活动")
+            material_label = Widget.create_title_label(canvas_configuration, "材料活动")
+            material_label.place(relx=0.4, rely=0.04)
+            Widget.create_subtitle_label(canvas_configuration, "执行频率:").place(
+                relx=0.05, rely=0.1
+            )
+            material_frequency_list = ["每日一次", "每次启动"]
+            material_frequency = Widget.create_combobox(
+                canvas_configuration,
+                material_frequency_list,
+                selected_function=lambda e: material_label.focus(),
+            )
+            material_frequency.place(relx=0.25, rely=0.1, relwidth=0.5, height=30)
+            material_configuration = (
+                self.confiurationService.get_material_configuration()
+            )
+            if material_configuration:
+                material_frequency.current(
+                    material_frequency_list.index(material_configuration["frequency"])
+                )
+            else:
+                material_frequency.current(0)
+
+            def save_material_configuration():
+                self.confiurationService.save_material_configuration(
+                    {"frequency": material_frequency.get()}
+                )
+                messagebox.showinfo(title="提示", message="材料活动配置保存成功")
+
+            Widget.create_success_button(
+                canvas_configuration, "Save", save_material_configuration
+            ).place(relx=0.8, rely=0.09, relwidth=0.15, relheight=0.07)
+
         def configure_home_canvas():
             """创建配置家园日常的画布"""
             self.clear_canvas(canvas_configuration, "家园日常")
@@ -148,6 +183,7 @@ class APPLICATION:
                 canvas_configuration,
                 list(role_list.keys()),
                 selected_function=lambda e: role_label.focus(),
+                placeholder="No role records",
             )
             role.place(x=130, rely=0.1, relwidth=0.65, height=30)
             Widget.create_subtitle_label(canvas_configuration, "难度选择:").place(
@@ -166,11 +202,15 @@ class APPLICATION:
                 canvas_configuration,
                 level_list,
                 selected_function=lambda e: role_label.focus(),
+                placeholder="No level records",
             )
             level.place(x=130, rely=0.16, relwidth=0.65, height=30)
             Elysian_configuration = self.confiurationService.get_Elysian_configuration()
-            role.current(list(role_list.keys()).index(Elysian_configuration["name_ch"]))
-            level.current(level_list.index(Elysian_configuration["level"]))
+            if Elysian_configuration:
+                role.current(
+                    list(role_list.keys()).index(Elysian_configuration["name_ch"])
+                )
+                level.current(level_list.index(Elysian_configuration["level"]))
 
             def save_Elysian_configuration():
                 self.confiurationService.save_Elysian_configuration(
@@ -187,6 +227,7 @@ class APPLICATION:
             ).place(relx=0.45, rely=0.25, relwidth=0.15, relheight=0.07)
 
         checkbuttons_information = [
+            {"text": "材料活动", "command": configure_material_canvas},
             {"text": "家园日常", "command": configure_home_canvas},
             {"text": "舰团委托", "command": configure_commission_canvas},
             {"text": "每日商店", "command": cconfigure_shopping_canvas},
@@ -217,7 +258,7 @@ class APPLICATION:
             self.content_frame, 10, 20, 10, 60, "#FF9800"
         )
         canvas_configuration.place(relx=0.35, y=0, relwidth=0.65, relheight=1)
-        configure_home_canvas()
+        configure_material_canvas()
 
         def start_perfrom_tasks():
             """启动线程执行已选任务"""

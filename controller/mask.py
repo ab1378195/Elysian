@@ -44,6 +44,7 @@ class Mask:
         text.tag_configure("TIME", foreground="#C0C0C0", font=("Arial", 12))
         text.tag_configure("INF1", foreground="#FFFFFF", font=("宋体", 12))
         text.tag_configure("INF2", foreground="#04DBDD", font=("宋体", 12))
+        text.tag_configure("WAR", foreground="#FF6A00", font=("宋体", 12))
         text.tag_configure("ERR", foreground="#FF0000", font=("宋体", 12))
         return text
 
