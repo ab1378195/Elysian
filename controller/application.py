@@ -11,6 +11,9 @@ from service.strategyService import StrategyService
 from service.configurationService import ConfigurationService
 from components.widget import Widget
 
+# 常量定义
+FREQUENCY_LIST = ["每日一次", "每次启动"]
+
 
 class APPLICATION:
     def __init__(self, master):
@@ -23,7 +26,6 @@ class APPLICATION:
         self.master.title("Elysian")
         self.master.iconbitmap("resources\\ui\\logo.ico")
         self.master["bg"] = "#FFFFFF"
-        self.tasks_list = [tk.IntVar() for _ in range(6)]
         # 初始化执行线程与遮罩窗口
         self.procedure = Procedure()
         self.procedure_thread = Thread()
@@ -41,6 +43,12 @@ class APPLICATION:
         self.confiurationService = ConfigurationService()
         self.accountService = AccountService()
         self.strategyService = StrategyService()
+        # 初始化任务清单勾选状态
+        self.tasks_list = [tk.IntVar() for _ in range(6)]
+        task_configuration = self.confiurationService.get_task_configuration()
+        if task_configuration:
+            for i, value in enumerate(task_configuration["task"]):
+                self.tasks_list[i].set(value)
         # 初始显示启动页
         self.launch_page()
 
@@ -126,24 +134,21 @@ class APPLICATION:
             Widget.create_subtitle_label(canvas_configuration, "执行频率:").place(
                 relx=0.05, rely=0.1
             )
-            material_frequency_list = ["每日一次", "每次启动"]
             material_frequency = Widget.create_combobox(
                 canvas_configuration,
-                material_frequency_list,
+                FREQUENCY_LIST,
                 selected_function=lambda e: material_label.focus(),
             )
             material_frequency.place(relx=0.25, rely=0.1, relwidth=0.5, height=30)
             material_configuration = (
                 self.confiurationService.get_material_configuration()
             )
-            if material_configuration:
-                material_frequency.current(
-                    material_frequency_list.index(material_configuration["frequency"])
-                )
-            else:
-                material_frequency.current(0)
+            material_frequency.current(
+                FREQUENCY_LIST.index(material_configuration["frequency"])
+            )
 
             def save_material_configuration():
+                """保存材料活动的配置"""
                 self.confiurationService.save_material_configuration(
                     {"frequency": material_frequency.get()}
                 )
@@ -156,9 +161,88 @@ class APPLICATION:
         def configure_home_canvas():
             """创建配置家园日常的画布"""
             self.clear_canvas(canvas_configuration, "家园日常")
-            Widget.create_title_label(canvas_configuration, "家园打工").place(
-                relx=0.4, rely=0.04
+            # 体力和金币领取的配置部分
+            home_reward_label = Widget.create_title_label(
+                canvas_configuration, "体力和金币领取"
             )
+            home_reward_label.place(relx=0.35, rely=0.04)
+            Widget.create_subtitle_label(canvas_configuration, "执行频率:").place(
+                relx=0.05, rely=0.1
+            )
+            home_reward_frequency = Widget.create_combobox(
+                canvas_configuration,
+                FREQUENCY_LIST,
+                selected_function=lambda e: home_reward_label.focus(),
+            )
+            home_reward_frequency.place(relx=0.25, rely=0.1, relwidth=0.7, height=30)
+            # 家园打工的配置部分
+            Widget.create_title_label(canvas_configuration, "家园打工").place(
+                relx=0.4, rely=0.15
+            )
+            Widget.create_subtitle_label(canvas_configuration, "执行频率:").place(
+                relx=0.05, rely=0.22
+            )
+            home_quest_frequency = Widget.create_combobox(
+                canvas_configuration,
+                FREQUENCY_LIST,
+                selected_function=lambda e: home_reward_label.focus(),
+            )
+            home_quest_frequency.place(relx=0.25, rely=0.22, relwidth=0.7, height=30)
+            # 家园远征的配置部分
+            Widget.create_title_label(canvas_configuration, "家园远征").place(
+                relx=0.4, rely=0.29
+            )
+            Widget.create_subtitle_label(canvas_configuration, "执行频率:").place(
+                relx=0.05, rely=0.35
+            )
+            home_storysweep_frequency = Widget.create_combobox(
+                canvas_configuration,
+                FREQUENCY_LIST,
+                selected_function=lambda e: home_reward_label.focus(),
+            )
+            home_storysweep_frequency.place(
+                relx=0.25, rely=0.35, relwidth=0.7, height=30
+            )
+            Widget.create_subtitle_label(canvas_configuration, "远征次数:").place(
+                relx=0.05, rely=0.42
+            )
+            home_storysweep_times = Widget.create_entry(
+                canvas_configuration, number_validator=True
+            )
+            home_storysweep_times.place(relx=0.25, rely=0.42, relwidth=0.7, height=30)
+            # 加载家园日常的配置
+            home_configuration = self.confiurationService.get_home_configuration()
+            home_reward_frequency.current(
+                FREQUENCY_LIST.index(home_configuration["reward"])
+            )
+            home_quest_frequency.current(
+                FREQUENCY_LIST.index(home_configuration["quest"])
+            )
+            home_storysweep_frequency.current(
+                FREQUENCY_LIST.index(home_configuration["storysweep"][0])
+            )
+            home_storysweep_times.write(home_configuration["storysweep"][1])
+
+            def save_home_configuration():
+                """保存家园日常的配置"""
+                if home_storysweep_times.get() == "":
+                    messagebox.showerror(title="错误", message="家园远征次数不能为空")
+                    return
+                self.confiurationService.save_home_configuration(
+                    {
+                        "reward": home_reward_frequency.get(),
+                        "quest": home_quest_frequency.get(),
+                        "storysweep": [
+                            home_storysweep_frequency.get(),
+                            home_storysweep_times.get(),
+                        ],
+                    }
+                )
+                messagebox.showinfo(title="提示", message="家园日常的配置保存成功")
+
+            Widget.create_success_button(
+                canvas_configuration, "Save", save_home_configuration
+            ).place(relx=0.45, rely=0.5, relwidth=0.15, relheight=0.07)
 
         def configure_commission_canvas():
             """创建配置舰团委托的画布"""
@@ -205,12 +289,10 @@ class APPLICATION:
                 placeholder="No level records",
             )
             level.place(x=130, rely=0.16, relwidth=0.65, height=30)
+            # 加载往世乐土的配置文件
             Elysian_configuration = self.confiurationService.get_Elysian_configuration()
-            if Elysian_configuration:
-                role.current(
-                    list(role_list.keys()).index(Elysian_configuration["name_ch"])
-                )
-                level.current(level_list.index(Elysian_configuration["level"]))
+            role.current(list(role_list.keys()).index(Elysian_configuration["name_ch"]))
+            level.current(level_list.index(Elysian_configuration["level"]))
 
             def save_Elysian_configuration():
                 self.confiurationService.save_Elysian_configuration(
@@ -279,6 +361,11 @@ class APPLICATION:
                 if task_num == 0:
                     messagebox.showerror(title="错误", message="尚未选择任何任务")
                 elif self.procedure_thread.is_alive() == False:
+                    # 保存本次配置的任务清单
+                    self.confiurationService.save_task_configuration(
+                        {"task": tasks_list_int}
+                    )
+                    # 启动执行任务的线程
                     self.procedure_thread = Thread(
                         target=self.procedure.perform_tasks,
                         args=(tasks_list_int,),

@@ -62,11 +62,13 @@ class Launch:
         self.log_queue.put(["exit", "INF1"])
 
     def activate_game(self):
-        """激活崩坏3为活跃窗口"""
+        """如果崩坏3存在，激活崩坏3为活跃窗口"""
         active_window = gw.getActiveWindow()
         if active_window.title != "崩坏3":
             game_window = gw.getWindowsWithTitle("崩坏3")
-            game_window[0].activate()
+            # 崩坏3窗口已存在时才激活
+            if game_window:
+                game_window[0].activate()
 
     def enter_game(self):
         """进入崩坏3"""
@@ -84,9 +86,7 @@ class Launch:
                 if self.ocr.text("空白", blocking=0, region_id=7):
                     sleep(0.5)
                     # 关闭活动公告
-                    if self.imgF.single(
-                        "resources//login//close_announcement.png", region_id=2
-                    ):
+                    if self.imgF.single("resources//common//close.png", region_id=2):
                         moveTo(self.imgF.position)
                         sleep(0.2)
                         click()
@@ -104,7 +104,7 @@ class Launch:
                 else:
                     flag_reward = True
                 # 深渊结算
-                if self.ocr.text("结算", blocking=0):
+                if self.ocr.text("结算奖励", blocking=0):
                     sleep(2)
                     click()
                     sleep(2)
@@ -209,13 +209,16 @@ class Launch:
                     break
             if self.account.channel == "渠道服":
                 self.log_queue.put(["检测到为渠道服登录，启动模拟器", "INF1"])
-                mumu = Mumu(self.emulator_configuration["path"]).select(
-                    self.emulator_configuration["index"]
-                )
-                mumu.power.start()
-                sleep(10)
-                mumu.window.show()
-                mumu.app.launch("com.github.haocen2004.bh3_login_simulation")
+                try:
+                    mumu = Mumu(self.emulator_configuration["path"]).select(
+                        self.emulator_configuration["index"]
+                    )
+                    mumu.power.start()
+                    sleep(10)
+                    mumu.window.show()
+                    mumu.app.launch("com.github.haocen2004.bh3_login_simulation")
+                except Exception as e:
+                    self.log_queue.put([e, "ERR"])
                 while True:
                     if self.imgF.single(
                         "resources//login//channel_ready1.png", region_id=9

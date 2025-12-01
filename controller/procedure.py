@@ -2,8 +2,8 @@ from threading import Thread
 from controller.mask import launch_mask
 from queue import Queue, Empty
 from service.launch import Launch
-from service.Elysian import Elysian
 from service.material import Material
+from service.home import Home
 
 
 class Procedure:
@@ -47,17 +47,26 @@ class Procedure:
             tasks_list (List<int>): 任务清单列表，1代表需要执行，0代表不执行
         """
         self.write_log(["任务开始", "INF2"])
+        # 启动崩坏3
         launch_thread_queue = Queue()
         launch = Launch(launch_thread_queue)
         launch_thread = Thread(target=launch.launch_game, daemon=True)
         launch_thread.start()
         self.receive(launch_thread_queue)
+        # 判断并执行材料活动任务
         if tasks_list[0] == 1:
             material_thread_queue = Queue()
             material = Material(material_thread_queue)
             material_thread = Thread(target=material.run, daemon=True)
             material_thread.start()
             self.receive(material_thread_queue)
+        # 判断并执行家园日常任务
+        if tasks_list[1] == 1:
+            home_thread_queue = Queue()
+            home = Home(home_thread_queue)
+            home_thread = Thread(target=home.run, daemon=True)
+            home_thread.start()
+            self.receive(home_thread_queue)
 
         # if tasks_list[5] == 1:
         #     Elysian_deep_thread_queue = Queue()

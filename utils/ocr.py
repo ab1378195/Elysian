@@ -55,6 +55,9 @@ class OCR:
         image_bytes = image_byte_arr.getvalue()
         res = self.ocr.runBytes(image_bytes)
         for data in res["data"]:
+            # 未检测到任何文本
+            if type(data) == str:
+                continue
             if match == 0 and text in data["text"]:
                 return [
                     ((data["box"][0][0] + data["box"][2][0]) >> 1)
@@ -70,6 +73,36 @@ class OCR:
                     + self.point_list[region_id][1],
                 ]
         return None
+
+    def find_all(self, text):
+        """全屏查找所有包含指定文本的位置，返回包含所有坐标的一个列表
+
+        Args:
+            text (String): 要匹配的文本
+
+        Returns:
+            List: 所有匹配点坐标的列表，未找到返回[ ]
+        """
+        image = screenshot()
+        image_byte_arr = BytesIO()
+        image.save(image_byte_arr, format="JPEG", quality=85)
+        image_bytes = image_byte_arr.getvalue()
+        res = self.ocr.runBytes(image_bytes)
+        position = []
+        for data in res["data"]:
+            # 未检测到任何文本
+            if type(data) == str:
+                continue
+            if text in data["text"]:
+                position.append(
+                    [
+                        ((data["box"][0][0] + data["box"][2][0]) >> 1)
+                        + self.point_list[0][0],
+                        ((data["box"][0][1] + data["box"][2][1]) >> 1)
+                        + self.point_list[0][1],
+                    ]
+                )
+        return position
 
     def text(self, text, blocking=1, region_id=0, match=0):
         """将鼠标移到目标文本的中心点，匹配到了返回True

@@ -24,7 +24,7 @@ class ConfigurationRepository:
             ) as f:
                 configuration = load(f)
             return configuration
-        except:
+        except FileNotFoundError:
             return {}
 
     def save_configuration(self, configuration, configuration_name):

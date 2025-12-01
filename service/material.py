@@ -1,8 +1,7 @@
 from utils.ocr import OCR
-from time import sleep
 from service.recordService import RecordService
 from service.configurationService import ConfigurationService
-from time import strftime
+from time import strftime, sleep
 from pyautogui import click, press
 
 
@@ -11,7 +10,8 @@ class Material:
         self.ocr = OCR()
         self.log_queue = log_queue
         self.recordService = RecordService()
-        self.configurationService = ConfigurationService()
+        configurationService = ConfigurationService()
+        self.configuration = configurationService.get_material_configuration()
         self.current_day = strftime("%Y-%m-%d")
 
     def run(self):
@@ -21,15 +21,10 @@ class Material:
             Returns:
                 boolean: True代表需要执行
             """
-            if (
-                self.configurationService.get_material_configuration()["frequency"]
-                == "每日一次"
-            ):
+            if self.configuration["frequency"] == "每日一次":
                 record = self.recordService.get_material_record()
                 if record and record["time"] == self.current_day:
-                    self.log_queue.put(
-                        ["检测到今日已执行过该任务，任务自动取消", "INF1"]
-                    )
+                    self.log_queue.put(["检测到今日已执行，任务自动取消", "INF1"])
                     return False
             return True
 
@@ -58,5 +53,6 @@ class Material:
                 self.log_queue.put(["未检测到一键减负按钮", "WAR"])
             press("home")
         self.recordService.save_material_record({"time": self.current_day})
+        self.ocr.terminate()
         self.log_queue.put(["材料活动任务执行完成", "INF2"])
         self.log_queue.put(["exit", "INF1"])
