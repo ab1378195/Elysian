@@ -247,6 +247,55 @@ class APPLICATION:
         def configure_commission_canvas():
             """创建配置舰团委托的画布"""
             self.clear_canvas(canvas_configuration, "舰团委托")
+            commission_label = Widget.create_title_label(
+                canvas_configuration, "舰团委托"
+            )
+            commission_label.place(relx=0.4, rely=0.04)
+            Widget.create_subtitle_label(canvas_configuration, "执行频率:").place(
+                relx=0.05, rely=0.1
+            )
+            commission_frequency = Widget.create_combobox(
+                canvas_configuration,
+                FREQUENCY_LIST,
+                selected_function=lambda e: commission_label.focus(),
+            )
+            commission_frequency.place(relx=0.25, rely=0.1, relwidth=0.7, height=30)
+            Widget.create_subtitle_label(canvas_configuration, "委托次数:").place(
+                relx=0.05, rely=0.17
+            )
+            commission_times = Widget.create_entry(
+                canvas_configuration, number_validator=True
+            )
+            commission_times.place(relx=0.25, rely=0.17, relwidth=0.7, height=30)
+            # 加载舰团委托的配置
+            commission_configuration = (
+                self.confiurationService.get_commission_configuration()
+            )
+            commission_frequency.current(
+                FREQUENCY_LIST.index(commission_configuration["frequency"])
+            )
+            commission_times.write(commission_configuration["times"])
+
+            def save_commission_configuration():
+                """保存舰团委托的相关配置"""
+                times = commission_times.get()
+                if times == "":
+                    messagebox.showerror(title="错误", message="家园远征次数不能为空")
+                    return
+                if int(times) > 8:
+                    messagebox.showerror(title="错误", message="舰团委托次数不能大于8")
+                    return
+                if times == "0":
+                    messagebox.showerror(title="错误", message="舰团委托次数不能为0")
+                    return
+                self.confiurationService.save_commission_configuration(
+                    {"frequency": commission_frequency.get(), "times": times}
+                )
+                messagebox.showinfo(title="提示", message="舰团委托的配置保存成功")
+
+            Widget.create_success_button(
+                canvas_configuration, "Save", save_commission_configuration
+            ).place(relx=0.45, rely=0.25, relwidth=0.15, relheight=0.07)
 
         def cconfigure_shopping_canvas():
             """创建配置每日商店的画布"""

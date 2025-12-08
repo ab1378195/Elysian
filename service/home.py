@@ -9,6 +9,11 @@ import os
 
 class Home:
     def __init__(self, log_queue):
+        """实现家园日常任务的类
+
+        Args:
+            log_queue (Queue): 和procedure通信的队列
+        """
         self.ocr = OCR()
         self.imgF = ImageFinder()
         self.log_queue = log_queue
@@ -23,6 +28,7 @@ class Home:
         self.state = False
 
     def run(self):
+        """执行家园日常任务"""
         self.log_queue.put(["开始执行家园日常任务", "INF2"])
         self.__run_reward()
         self.__run_quest()
@@ -185,13 +191,17 @@ class Home:
             self.__enter_home()
             self.ocr.click_text("远征", region_id=4)
             sleep(3)
-            if self.ocr.click_text("完成远征", blocking=0):
-                sleep(1)
-                self.ocr.click_text("确定", region_id=7)
-                sleep(1)
-                self.log_queue.put(["家园远征奖励已领取", "INF1"])
+            # 不领取当日的远征奖励，避免次日任务无法完成
+            if self.record["storysweep"] == self.current_day:
+                self.log_queue.put(["今日已领取家园远征奖励，不再尝试领取", "INF1"])
             else:
-                self.log_queue.put(["无可领取的家园远征奖励", "INF1"])
+                if self.ocr.click_text("完成远征", blocking=0):
+                    sleep(1)
+                    self.ocr.click_text("确定", region_id=7)
+                    sleep(1)
+                    self.log_queue.put(["家园远征奖励已领取", "INF1"])
+                else:
+                    self.log_queue.put(["无可领取的家园远征奖励", "INF1"])
             # 仅远征黑核
             self.ocr.click_text("材料")
             sleep(2)

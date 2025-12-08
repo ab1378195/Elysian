@@ -7,6 +7,11 @@ from pyautogui import click, press
 
 class Material:
     def __init__(self, log_queue):
+        """实现材料活动任务的类
+
+        Args:
+            log_queue (Queue): 和procedure通信的队列
+        """
         self.ocr = OCR()
         self.log_queue = log_queue
         self.recordService = RecordService()
@@ -15,6 +20,8 @@ class Material:
         self.current_day = strftime("%Y-%m-%d")
 
     def run(self):
+        """执行材料活动任务"""
+
         def run_validate():
             """检测是否需要执行材料活动任务
 

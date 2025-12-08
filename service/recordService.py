@@ -37,3 +37,19 @@ class RecordService:
             record (dict): 要保存的记录信息
         """
         self.recordRepository.save_record("home", record)
+
+    def get_commission_record(self):
+        """获取舰团委托的记录
+
+        Returns:
+            dict: 舰团委托记录的字典，未找到返回{ }
+        """
+        return self.recordRepository.get_record("commission")
+
+    def save_commission_record(self, record):
+        """保存舰团委托任务的新记录
+
+        Args:
+            record (dict): 要保存的记录信息
+        """
+        self.recordRepository.save_record("commission", record)

@@ -95,6 +95,24 @@ class ConfigurationService:
         """
         self.configurationRepository.save_configuration(configuration, "home")
 
+    def get_commission_configuration(self):
+        """获取舰团委托的配置信息
+
+        Returns:
+            dict: 舰团委托的配置字典
+        """
+        return self.__configuration_validate(
+            {"frequency": "每日一次", "times": "4"}, "commission"
+        )
+
+    def save_commission_configuration(self, configuration):
+        """保存舰团委托的配置
+
+        Args:
+            configuration (dict): 舰团委托的配置字典
+        """
+        self.configurationRepository.save_configuration(configuration, "commission")
+
     def save_Elysian_configuration(self, configuration):
         """保存往世乐土相关配置信息
 

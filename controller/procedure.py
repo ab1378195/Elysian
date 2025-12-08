@@ -4,6 +4,8 @@ from queue import Queue, Empty
 from service.launch import Launch
 from service.material import Material
 from service.home import Home
+from service.commission import Commission
+from service.activity import Activity
 
 
 class Procedure:
@@ -53,6 +55,12 @@ class Procedure:
         launch_thread = Thread(target=launch.launch_game, daemon=True)
         launch_thread.start()
         self.receive(launch_thread_queue)
+        # 领取任务奖励，主要是体力(芽衣的加餐)
+        activity_thread_queue = Queue()
+        activity = Activity(activity_thread_queue, False)
+        activity_thread = Thread(target=activity.run, daemon=True)
+        activity_thread.start()
+        self.receive(activity_thread_queue)
         # 判断并执行材料活动任务
         if tasks_list[0] == 1:
             material_thread_queue = Queue()
@@ -67,6 +75,13 @@ class Procedure:
             home_thread = Thread(target=home.run, daemon=True)
             home_thread.start()
             self.receive(home_thread_queue)
+        # 判断并执行舰团委托任务
+        if tasks_list[2] == 1:
+            commission_thread_queue = Queue()
+            commission = Commission(commission_thread_queue)
+            commission_thread = Thread(target=commission.run, daemon=True)
+            commission_thread.start()
+            self.receive(commission_thread_queue)
 
         # if tasks_list[5] == 1:
         #     Elysian_deep_thread_queue = Queue()
@@ -74,4 +89,11 @@ class Procedure:
         #     Elysian_deep_thread = Thread(target=elysian.run, daemon=True)
         #     Elysian_deep_thread.start()
         #     self.receive(Elysian_deep_thread_queue)
+
+        # 如果有任何一项任务被勾选，则在全部任务执行完成后再次领取活跃度奖励
+        if sum(tasks_list) > 0:
+            activity = Activity(activity_thread_queue, True)
+            activity_thread = Thread(target=activity.run, daemon=True)
+            activity_thread.start()
+            self.receive(activity_thread_queue)
         self.write_log(["所有任务均已完成", "INF2"])
