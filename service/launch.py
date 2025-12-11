@@ -11,6 +11,7 @@ from math import pow
 from pyperclip import copy
 from api.mumu.mumu import Mumu
 import psutil
+import win32gui
 
 
 class Launch:
@@ -31,18 +32,27 @@ class Launch:
         self.log_queue = log_queue
         # True代表崩坏3窗口原先不存在，False代表原先已存在
         self.status = self.launch_game()
+        # 等待直到能获得确定的窗口句柄
+        while True:
+            hwnd = win32gui.FindWindow(None, "崩坏3")
+            if hwnd != 0:
+                sleep(2)
+                break
+            sleep(0.5)
         while True:
             try:
                 self.ocr = OCR()
                 break
             except:
                 sleep(1)
+        self.log_queue.put(["文字识别初始化成功", "INF1"])
         while True:
             try:
                 self.imgF = ImageFinder()
                 break
             except:
                 sleep(1)
+        self.log_queue.put(["图片识别初始化成功", "INF1"])
 
     def run(self):
         if self.status:
@@ -75,7 +85,7 @@ class Launch:
                     )
                 if last_uid != int(self.account.uid):
                     self.logout = True
-            sleep(2)
+            sleep(5)
             return True
         return False
 
