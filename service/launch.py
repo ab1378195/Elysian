@@ -29,8 +29,30 @@ class Launch:
             )
         self.logout = False
         self.log_queue = log_queue
-        self.imgF = ImageFinder()
-        self.ocr = OCR()
+        # True代表崩坏3窗口原先不存在，False代表原先已存在
+        self.status = self.launch_game()
+        while True:
+            try:
+                self.ocr = OCR()
+                break
+            except:
+                sleep(1)
+        while True:
+            try:
+                self.imgF = ImageFinder()
+                break
+            except:
+                sleep(1)
+
+    def run(self):
+        if self.status:
+            sleep(10)
+            self.enter_game()
+        else:
+            self.activate_game()
+        self.ocr.terminate()
+        self.log_queue.put(["启动成功", "INF2"])
+        self.log_queue.put(["exit", "INF1"])
 
     def launch_game(self):
         """启动崩坏3"""
@@ -53,13 +75,9 @@ class Launch:
                     )
                 if last_uid != int(self.account.uid):
                     self.logout = True
-            sleep(10)
-            self.enter_game()
-        else:
-            self.activate_game()
-        self.ocr.terminate()
-        self.log_queue.put(["启动成功", "INF2"])
-        self.log_queue.put(["exit", "INF1"])
+            sleep(2)
+            return True
+        return False
 
     def activate_game(self):
         """如果崩坏3存在，激活崩坏3为活跃窗口"""
@@ -221,11 +239,11 @@ class Launch:
                     self.log_queue.put([e, "ERR"])
                 while True:
                     if self.imgF.single(
-                        "resources//login//channel_ready1.png", region_id=9
+                        "resources//login//channel_ready1.png", region_id=-1
                     ):
                         break
                     if self.imgF.single(
-                        "resources//login//channel_ready2.png", region_id=9
+                        "resources//login//channel_ready2.png", region_id=-1
                     ):
                         break
                     sleep(0.5)
@@ -233,16 +251,16 @@ class Launch:
                 game_window[0].activate()
                 while True:
                     sleep(0.5)
-                    if self.imgF.single("resources//login//QRcode.png"):
+                    if self.imgF.single("resources//login//QRcode.png", region_id=-1):
                         break
                 moveTo(self.imgF.position)
                 sleep(0.2)
                 click()
                 sleep(0.2)
                 mumu.window.show()
-                self.ocr.click_text("扫描二维码")
+                self.ocr.click_text("扫描二维码", region_id=-1)
                 sleep(1)
-                self.ocr.click_text("实时")
+                self.ocr.click_text("实时", region_id=-1)
                 sleep(0.5)
                 game_window = gw.getWindowsWithTitle("崩坏3")
                 game_window[0].activate()

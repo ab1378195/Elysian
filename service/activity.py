@@ -29,6 +29,20 @@ class Activity:
         sleep(0.2)
         click()
         sleep(1)
+        # 点击作战任务(可能在历练任务等其它地方)
+        while True:
+            position_list = self.ocr.find_all("作战任务")
+            if len(position_list) >= 2:
+                break
+            sleep(0.5)
+        target_position = position_list[0]
+        for position in position_list[1:]:
+            if position[1] > target_position[1]:
+                target_position = position
+        moveTo(target_position)
+        sleep(0.2)
+        click()
+        sleep(1)
         self.ocr.click_text("一键领取", region_id=2)
         sleep(3)
         # 如果领取到了奖励，需要点击确定按钮关闭弹窗

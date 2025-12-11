@@ -52,7 +52,7 @@ class Procedure:
         # 启动崩坏3
         launch_thread_queue = Queue()
         launch = Launch(launch_thread_queue)
-        launch_thread = Thread(target=launch.launch_game, daemon=True)
+        launch_thread = Thread(target=launch.run, daemon=True)
         launch_thread.start()
         self.receive(launch_thread_queue)
         # 领取任务奖励，主要是体力(芽衣的加餐)

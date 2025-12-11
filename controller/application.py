@@ -403,13 +403,9 @@ class APPLICATION:
                 messagebox.showerror(title="错误", message="渠道服账号登录需配置模拟器")
             else:
                 tasks_list_int = []
-                task_num = 0
                 for task in self.tasks_list:
                     tasks_list_int.append(task.get())
-                    task_num += task.get()
-                if task_num == 0:
-                    messagebox.showerror(title="错误", message="尚未选择任何任务")
-                elif self.procedure_thread.is_alive() == False:
+                if self.procedure_thread.is_alive() == False:
                     # 保存本次配置的任务清单
                     self.confiurationService.save_task_configuration(
                         {"task": tasks_list_int}

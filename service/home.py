@@ -192,7 +192,10 @@ class Home:
             self.ocr.click_text("远征", region_id=4)
             sleep(3)
             # 不领取当日的远征奖励，避免次日任务无法完成
-            if self.record["storysweep"] == self.current_day:
+            if (
+                "storysweep" in self.record
+                and self.record["storysweep"] == self.current_day
+            ):
                 self.log_queue.put(["今日已领取家园远征奖励，不再尝试领取", "INF1"])
             else:
                 if self.ocr.click_text("完成远征", blocking=0):
@@ -205,12 +208,21 @@ class Home:
             # 仅远征黑核
             self.ocr.click_text("材料")
             sleep(2)
-            # 执行远征派遣
-            i = 0
-            MAX_TIMES = int(self.configuration["storysweep"][1])
             WIDTH, HEIGHT = size()
             X_CENTER = WIDTH >> 1
             Y_CENTER = HEIGHT >> 1
+            # 先翻页至上边
+            while True:
+                if self.ocr.find("最近") is None:
+                    moveTo(X_CENTER, Y_CENTER)
+                    dragRel(0, 200, duration=1)
+                    sleep(1)
+                else:
+                    break
+            sleep(2)
+            # 执行远征派遣
+            i = 0
+            MAX_TIMES = int(self.configuration["storysweep"][1])            
             while True:
                 # 若开始远征按钮数目不够，向下滚动页面
                 position_list = self.ocr.find_all("开始远征")
