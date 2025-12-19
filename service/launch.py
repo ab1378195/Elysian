@@ -247,16 +247,15 @@ class Launch:
                     mumu.app.launch("com.github.haocen2004.bh3_login_simulation")
                 except Exception as e:
                     self.log_queue.put([e, "ERR"])
+                sleep(3)
+                # 等待扫描二维码按钮出现，说明扫码器已打开
+                self.ocr.text("扫描二维码", region_id=-1)
+                # 等待扫码器自动登录完成
                 while True:
-                    if self.imgF.single(
-                        "resources//login//channel_ready1.png", region_id=-1
-                    ):
+                    if self.ocr.find("未登录", region_id=-1) is not None:
+                        sleep(2)
+                    else:
                         break
-                    if self.imgF.single(
-                        "resources//login//channel_ready2.png", region_id=-1
-                    ):
-                        break
-                    sleep(0.5)
                 game_window = gw.getWindowsWithTitle("崩坏3")
                 game_window[0].activate()
                 while True:
@@ -268,9 +267,14 @@ class Launch:
                 click()
                 sleep(0.2)
                 mumu.window.show()
-                self.ocr.click_text("扫描二维码", region_id=-1)
+                # 一直点击扫码器的扫描二维码，直到实时截图选项出现(为了防止前面误判扫码器已登录)
                 sleep(1)
-                self.ocr.click_text("实时", region_id=-1)
+                while True:
+                    self.ocr.click_text("扫描二维码", region_id=-1, blocking=0)
+                    sleep(1)
+                    if self.ocr.click_text("实时", region_id=-1, blocking=0):
+                        break
+                    sleep(1)
                 sleep(0.5)
                 game_window = gw.getWindowsWithTitle("崩坏3")
                 game_window[0].activate()

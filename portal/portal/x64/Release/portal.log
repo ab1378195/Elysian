@@ -1,0 +1,22 @@
+﻿  main.cpp
+D:\Lib\OpenCV\build\include\opencv2\imgcodecs.hpp(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (compiling source file 'main.cpp')
+  
+D:\Lib\pybind11\include\pybind11\detail\struct_smart_holder.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (compiling source file 'main.cpp')
+  
+D:\Lib\pybind11\include\pybind11\cast.h(713,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (compiling source file 'main.cpp')
+  
+D:\Elysian\portal\main.cpp(186,19): warning C4244: “初始化”: 从“_Ty”转换到“int”，可能丢失数据
+D:\Elysian\portal\main.cpp(186,19): warning C4244:         with
+D:\Elysian\portal\main.cpp(186,19): warning C4244:         [
+D:\Elysian\portal\main.cpp(186,19): warning C4244:             _Ty=int64_t
+D:\Elysian\portal\main.cpp(186,19): warning C4244:         ]
+    正在创建库 D:\Elysian\portal\x64\Release\portal.lib 和对象 D:\Elysian\portal\x64\Release\portal.exp
+  正在生成代码
+  4143 of 4176 functions (99.2%) were compiled, the rest were copied from previous compilation.
+    3 functions were new in current compilation
+    2 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  portal.vcxproj -> D:\Elysian\portal\x64\Release\portal.pyd

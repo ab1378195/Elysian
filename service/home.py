@@ -213,7 +213,7 @@ class Home:
             Y_CENTER = HEIGHT >> 1
             # 先翻页至上边
             while True:
-                if self.ocr.find("最近") is None:
+                if self.ocr.find("最近") is None and self.ocr.find("完成") is None:
                     moveTo(X_CENTER, Y_CENTER)
                     dragRel(0, 200, duration=1)
                     sleep(1)
@@ -222,7 +222,7 @@ class Home:
             sleep(2)
             # 执行远征派遣
             i = 0
-            MAX_TIMES = int(self.configuration["storysweep"][1])            
+            MAX_TIMES = int(self.configuration["storysweep"][1])
             while True:
                 # 若开始远征按钮数目不够，向下滚动页面
                 position_list = self.ocr.find_all("开始远征")

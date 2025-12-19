@@ -339,12 +339,12 @@ class APPLICATION:
             )
             level.place(x=130, rely=0.16, relwidth=0.65, height=30)
             # 加载往世乐土的配置文件
-            Elysian_configuration = self.confiurationService.get_Elysian_configuration()
+            Elysian_configuration = self.confiurationService.get_realm_configuration()
             role.current(list(role_list.keys()).index(Elysian_configuration["name_ch"]))
             level.current(level_list.index(Elysian_configuration["level"]))
 
             def save_Elysian_configuration():
-                self.confiurationService.save_Elysian_configuration(
+                self.confiurationService.save_realm_configuration(
                     {
                         "name_ch": role.get(),
                         "level": level.get(),

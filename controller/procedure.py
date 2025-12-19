@@ -6,6 +6,7 @@ from service.material import Material
 from service.home import Home
 from service.commission import Commission
 from service.activity import Activity
+from service.realm import Realm
 
 
 class Procedure:
@@ -39,8 +40,8 @@ class Procedure:
                 self.write_log(log)
             except Empty:
                 pass
-            # except Exception as e:
-            #     self.log_queue.put([e, "ERR"])
+            except Exception as e:
+                self.log_queue.put([e, "ERR"])
 
     def perform_tasks(self, tasks_list):
         """执行所选的各项任务
@@ -55,12 +56,13 @@ class Procedure:
         launch_thread = Thread(target=launch.run, daemon=True)
         launch_thread.start()
         self.receive(launch_thread_queue)
-        # 领取任务奖励，主要是体力(芽衣的加餐)
-        activity_thread_queue = Queue()
-        activity = Activity(activity_thread_queue, False)
-        activity_thread = Thread(target=activity.run, daemon=True)
-        activity_thread.start()
-        self.receive(activity_thread_queue)
+        # 领取任务奖励，主要是体力(芽衣的加餐)，仅当选择了任务时执行，否则只启动崩坏3
+        if sum(tasks_list) > 0:
+            activity_thread_queue = Queue()
+            activity = Activity(activity_thread_queue, False)
+            activity_thread = Thread(target=activity.run, daemon=True)
+            activity_thread.start()
+            self.receive(activity_thread_queue)
         # 判断并执行材料活动任务
         if tasks_list[0] == 1:
             material_thread_queue = Queue()
@@ -83,12 +85,13 @@ class Procedure:
             commission_thread.start()
             self.receive(commission_thread_queue)
 
-        # if tasks_list[5] == 1:
-        #     Elysian_deep_thread_queue = Queue()
-        #     elysian = Elysian(Elysian_deep_thread_queue)
-        #     Elysian_deep_thread = Thread(target=elysian.run, daemon=True)
-        #     Elysian_deep_thread.start()
-        #     self.receive(Elysian_deep_thread_queue)
+        # 判断并执行往世乐土任务
+        if tasks_list[5] == 1:
+            realm_thread_queue = Queue()
+            realm = Realm(realm_thread_queue)
+            realm_thread = Thread(target=realm.run, daemon=True)
+            realm_thread.start()
+            self.receive(realm_thread_queue)
 
         # 如果有任何一项任务被勾选，则在全部任务执行完成后再次领取活跃度奖励
         if sum(tasks_list) > 0:

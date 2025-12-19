@@ -1,0 +1,9 @@
+﻿  main.cpp
+D:\Anaconda\envs\Elysian\Lib\site-packages\pybind11\include\pybind11\detail\struct_smart_holder.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (compiling source file 'main.cpp')
+  
+D:\Anaconda\envs\Elysian\Lib\site-packages\pybind11\include\pybind11\cast.h(713,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (compiling source file 'main.cpp')
+  
+    正在创建库 D:\yolov12\portal\x64\Debug\portal.lib 和对象 D:\yolov12\portal\x64\Debug\portal.exp
+  portal.vcxproj -> D:\yolov12\portal\x64\Debug\portal.pyd

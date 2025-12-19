@@ -4,6 +4,7 @@ from threading import Thread
 from time import strftime
 from pygetwindow import getActiveWindowTitle
 from time import sleep
+import win32gui, win32con
 
 
 class Mask:
@@ -24,7 +25,19 @@ class Mask:
         self.log_queue = log_queue
         self.text_list = []
         self.MAX_NUM_TEXT = 10
-        self.communication_thread = Thread(target=self.check_queue, daemon=True)
+        # 设置鼠标穿透
+        self.master.update_idletasks()
+        hwnd = win32gui.FindWindow(None, self.master.title())
+        ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+        win32gui.SetWindowLong(
+            hwnd,
+            win32con.GWL_EXSTYLE,
+            ex_style | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
+        )
+
+        self.communication_thread = Thread(
+            target=self.check_queue, daemon=True
+        )
         self.communication_thread.start()
 
     def create_text(self):

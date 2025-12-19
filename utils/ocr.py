@@ -65,7 +65,7 @@ class OCR:
 
         Returns:
             List: 目标文本中心点的横纵坐标
-        """ 
+        """
         if region_id == -1:
             image = screenshot()
             region_id = 0  # 修改为全屏区域编号以对应后续的坐标修正操作

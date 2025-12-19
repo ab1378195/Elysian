@@ -113,15 +113,15 @@ class ConfigurationService:
         """
         self.configurationRepository.save_configuration(configuration, "commission")
 
-    def save_Elysian_configuration(self, configuration):
+    def save_realm_configuration(self, configuration):
         """保存往世乐土相关配置信息
 
         Args:
             configuration (dict): 往世乐土的新配置信息
         """
-        self.configurationRepository.save_configuration(configuration, "Elysian")
+        self.configurationRepository.save_configuration(configuration, "realm")
 
-    def get_Elysian_configuration(self):
+    def get_realm_configuration(self):
         """获取往世乐土相关配置信息
 
         Returns:
@@ -133,5 +133,5 @@ class ConfigurationService:
                 "level": "终尽(2.75)",
                 "name": "Herrscher_of_Human",
             },
-            "Elysian",
+            "realm",
         )

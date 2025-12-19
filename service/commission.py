@@ -101,7 +101,10 @@ class Commission:
                     sleep(2)
                     self.log_queue.put(["已达今日委托提交上限", "WAR"])
                     break
-            self.log_queue.put(["共计提交了{}个委托".format(i), "INF1"])
+            if i == TIMES:
+                self.log_queue.put(["共计提交了{}个委托".format(TIMES), "INF1"])
+            else:
+                self.log_queue.put(["共计提交了{}个委托".format(i), "INF1"])
             press("home")
         self.recordService.save_commission_record({"time": self.current_day})
         self.ocr.terminate()

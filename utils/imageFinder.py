@@ -1,4 +1,4 @@
-from pyautogui import size, locate, locateAll, locateCenterOnScreen
+from pyautogui import size, locate, locateAll, locateCenterOnScreen, center
 from utils.screenshot import Screenshot
 
 
@@ -68,7 +68,8 @@ class ImageFinder:
                 window_image = self.screenshot.screenshot()
                 if region_id != 0:
                     window_image = window_image.crop(self.point_list[region_id])
-                res = locate(image, window_image, confidence=confidence)
+                res_box = locate(image, window_image, confidence=confidence)
+                res = center(res_box)
             self.position = [
                 float(res[0]) + self.point_list[region_id][0],
                 float(res[1]) + self.point_list[region_id][1],
@@ -91,7 +92,8 @@ class ImageFinder:
         try:
             window_image = self.screenshot.screenshot()
             res = locateAll(image, window_image, confidence=confidence)
-            for point in res:
+            for res_box in res:
+                point = center(res_box)
                 self.position.append([float(point[0]), float(point[1])])
             return True
         except:
