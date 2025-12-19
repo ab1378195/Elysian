@@ -2,3 +2,4 @@ resources/account/*
 __pycache__
 test.py
 package
+.vs/
