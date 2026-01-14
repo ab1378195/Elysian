@@ -259,7 +259,7 @@ class Home:
                 self.ocr.click_text("确定", region_id=4)
                 sleep(2)
                 # 体力耗尽，退出
-                if self.ocr.text("体力", region_id=6, blocking=0):
+                if self.ocr.text("补充", region_id=6, blocking=0):
                     self.log_queue.put(["体力已用尽", "INF1"])
                     self.imgF.single(
                         os.path.join(self.common_resource_path, "close.png"),

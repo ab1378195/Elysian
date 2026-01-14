@@ -32,6 +32,13 @@ class Activity:
         # 点击作战任务(可能在历练任务等其它地方)
         while True:
             position_list = self.ocr.find_all("作战任务")
+            # 在作战奖励或作战商店界面
+            if len(position_list) == 1:
+                moveTo(position_list[0])
+                sleep(0.2)
+                click()
+                sleep(0.5)
+                continue
             if len(position_list) >= 2:
                 break
             sleep(0.5)

@@ -278,7 +278,7 @@ class Realm:
         self.screenshot = Screenshot()
         self.detector = portal.YoloDetector(
             os.path.join(
-                os.path.join(os.path.join("resources", "realm"), "model"), "portal.onnx"
+                os.path.join(os.path.join("resources", "realm"), "model"), "portalv8.onnx"
             ),
             "崩坏3",
         )
@@ -851,14 +851,14 @@ class Realm:
                 )
                 sleep(0.5)
                 continue
-            # 调整目标传送门到限定的X范围内
+            # 左右移动人物使得目标传送门在限定的X范围内
             if position[0] < self.TARGET_X_LEFT:
-                press("q")
-                sleep(0.2)
+                press("a")
+                sleep(0.5)
                 continue
             if position[0] > self.TARGET_X_RIGHT:
-                press("e")
-                sleep(0.2)
+                press("d")
+                sleep(0.5)
                 continue
             press("w")
             sleep(1)
